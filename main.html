@@ -1,0 +1,1677 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Ledger — Trading Value Hub</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@500;600;700;800&family=Inter:wght@400;500;600;700&family=Poppins:wght@500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+:root{
+  color-scheme: dark;
+  /* matte graphite/grey theme */
+  --bg:#0c0c0d; --bg-elev:#141416; --bg-elev-2:#1b1b1e;
+  --glass: rgba(255,255,255,0.045); --glass-border: rgba(255,255,255,0.09);
+  --primary:#c7c9cf; --secondary:#9a9ca3; --grad-a:#f2f2f4; --grad-b:#9a9ca3;
+  --text:#eceef0; --text-dim:#9b9ea6; --text-faint:#65676e;
+  --high:#63d99a; --med:#e8c368; --low:#e8737a; --you:#c7c9cf; --them:#cfa876;
+  --danger:#c0392b;
+  --radius:16px; --radius-sm:10px;
+  --font-heading:'Plus Jakarta Sans',sans-serif; --font-body:'Inter',sans-serif;
+  --hero-align:left;
+}
+*{box-sizing:border-box;}
+html,body{margin:0;padding:0;}
+body{
+  background:
+    radial-gradient(ellipse 900px 500px at 15% -5%, rgba(255,255,255,0.05), transparent 60%),
+    radial-gradient(ellipse 700px 500px at 100% 10%, rgba(255,255,255,0.035), transparent 60%),
+    var(--bg);
+  color:var(--text); font-family:var(--font-body); min-height:100vh; -webkit-font-smoothing:antialiased;
+}
+h1,h2,h3,.display{font-family:var(--font-heading);}
+.mono{font-family:var(--font-body);font-weight:600;color:var(--text-dim);}
+a{color:inherit;text-decoration:none;}
+button{font-family:inherit;cursor:pointer;}
+::-webkit-scrollbar{width:8px;height:8px;}
+::-webkit-scrollbar-thumb{background:rgba(255,255,255,0.25);border-radius:8px;}
+
+.app{max-width:1220px;margin:0 auto;padding:28px 24px 80px;}
+.topbar{display:flex;align-items:center;justify-content:space-between;margin-bottom:36px;gap:12px;flex-wrap:wrap;}
+.brand{display:flex;align-items:center;gap:10px;font-family:var(--font-heading);font-weight:700;font-size:20px;letter-spacing:0.2px;}
+.brand .mark{width:34px;height:34px;border-radius:9px;display:flex;align-items:center;justify-content:center;overflow:hidden;
+  background:linear-gradient(145deg,var(--grad-a),var(--grad-b));color:#101012;font-size:16px;font-weight:800;}
+.topbar nav{display:flex;gap:8px;}
+.nav-btn{padding:9px 16px;border-radius:999px;border:1px solid var(--glass-border);background:var(--glass);
+  color:var(--text-dim);font-size:13.5px;font-weight:600;display:flex;align-items:center;gap:7px;transition:all .2s ease;}
+.nav-btn:hover{color:var(--text);border-color:rgba(255,255,255,0.4);background:rgba(255,255,255,0.08);}
+.nav-btn.active{color:#101012;background:linear-gradient(120deg,var(--grad-a),var(--grad-b));border-color:transparent;}
+.domain-pill{font-size:11.5px;color:var(--text-faint);padding:6px 12px;
+  border:1px solid var(--glass-border);border-radius:999px;background:var(--glass);}
+
+.screen{display:none;}
+.screen.active{display:block;animation:fadeUp .35s ease both;}
+@keyframes fadeUp{from{opacity:0;transform:translateY(10px);}to{opacity:1;transform:translateY(0);}}
+
+/* ---------- home ---------- */
+.hero{margin-bottom:30px;}
+.hero.align-center{text-align:center;}
+.hero.align-center p{margin-left:auto;margin-right:auto;}
+.hero.align-right{text-align:right;}
+.hero.align-right p{margin-left:auto;margin-right:0;}
+.hero .eyebrow{font-size:12.5px;letter-spacing:1.5px;text-transform:uppercase;color:var(--text-faint);font-weight:600;margin-bottom:10px;}
+.hero h1{font-size:35px;margin:0 0 8px;font-weight:700;
+  background:linear-gradient(120deg,#fff, var(--grad-a) 45%, var(--grad-b));
+  -webkit-background-clip:text;background-clip:text;color:transparent;letter-spacing:-0.3px;}
+.hero p{color:var(--text-dim);font-size:15px;max-width:560px;line-height:1.55;margin:0;}
+
+.game-grid{display:flex;flex-direction:column;gap:16px;}
+
+.game-card{position:relative;display:flex;align-items:center;gap:20px;border-radius:var(--radius);padding:20px;
+  background:linear-gradient(160deg, var(--bg-elev-2), var(--bg-elev));border:1px solid var(--glass-border);overflow:hidden;
+  transition:transform .28s cubic-bezier(.2,.8,.2,1), box-shadow .28s ease, border-color .28s ease; text-align:left;width:100%;color:var(--text);}
+.game-card::before{content:"";position:absolute;inset:0;opacity:0;transition:opacity .3s ease;
+  background:radial-gradient(circle at 30% 20%, rgba(255,255,255,0.2), transparent 60%);}
+.game-card:hover{transform:translateY(-3px);border-color:rgba(255,255,255,0.45);
+  box-shadow:0 18px 40px -18px rgba(0,0,0,0.5), 0 0 0 1px rgba(255,255,255,0.12) inset;}
+.game-card:hover::before{opacity:1;}
+.game-card .gi{width:104px;height:104px;border-radius:16px;display:flex;align-items:center;justify-content:center;
+  font-size:34px;flex-shrink:0;background:rgba(255,255,255,0.12);color:var(--primary);border:1px solid rgba(255,255,255,0.25);
+  position:relative;z-index:1;overflow:hidden;}
+.game-card .gi img{width:100%;height:100%;object-fit:cover;display:block;}
+.game-card .gc-body{flex:1;min-width:0;position:relative;z-index:1;}
+.game-card h3{margin:0 0 5px;font-size:19px;font-weight:700;}
+.game-card .count{font-size:12.5px;color:var(--text-faint);}
+.game-card .sub-url{font-size:10.5px;color:var(--text-faint);margin-top:3px;opacity:.7;}
+.game-card .gc-footer{margin-top:10px;padding-top:10px;border-top:1px solid var(--glass-border);
+  font-size:12px;color:var(--text-dim);line-height:1.5;}
+.game-card .arrow{position:absolute;top:20px;right:20px;color:var(--text-faint);font-size:13px;transition:transform .25s ease,color .25s ease;z-index:2;}
+.game-card:hover .arrow{transform:translate(3px,-3px);color:var(--primary);}
+@media (max-width:620px){.game-card{flex-direction:column;align-items:flex-start;}.game-card .gi{width:100%;height:140px;}}
+
+/* ---------- game detail ---------- */
+.detail-head{display:flex;align-items:center;gap:14px;margin-bottom:18px;flex-wrap:wrap;}
+.back-btn{display:flex;align-items:center;gap:7px;padding:9px 14px;border-radius:999px;border:1px solid var(--glass-border);
+  background:var(--glass);color:var(--text-dim);font-size:13px;font-weight:600;transition:.2s;}
+.back-btn:hover{color:var(--text);border-color:rgba(255,255,255,0.4);}
+.detail-head h2{margin:0;font-size:24px;font-weight:700;}
+.detail-head .sub{color:var(--text-faint);font-size:12px;}
+
+.detail-stack{display:flex;flex-direction:column;gap:22px;}
+
+/* toolbar: search + filters */
+.list-toolbar{position:sticky;top:0;z-index:5;display:flex;gap:10px;flex-wrap:wrap;align-items:center;
+  padding:10px;margin-bottom:12px;border-radius:14px;background:rgba(14,14,16,0.85);backdrop-filter:blur(10px);
+  border:1px solid var(--glass-border);}
+.search-box{position:relative;flex:1;min-width:180px;}
+.search-box i{position:absolute;left:12px;top:50%;transform:translateY(-50%);color:var(--text-faint);font-size:12.5px;}
+.search-box input{width:100%;padding:9px 12px 9px 32px;border-radius:9px;}
+.filter-group{display:flex;align-items:center;gap:8px;flex-wrap:wrap;}
+.filter-group .filter-label{font-size:11px;font-weight:700;letter-spacing:0.4px;text-transform:uppercase;color:var(--text-faint);white-space:nowrap;}
+.chip-row{display:flex;gap:6px;flex-wrap:wrap;}
+.chip{padding:7px 12px;border-radius:999px;font-size:12px;font-weight:600;border:1px solid var(--glass-border);
+  background:var(--glass);color:var(--text-dim);transition:.2s;}
+.chip:hover{color:var(--text);border-color:rgba(255,255,255,0.4);}
+.chip.active{background:linear-gradient(120deg,var(--grad-a),var(--grad-b));color:#101012;border-color:transparent;}
+.sort-select{padding:9px 30px 9px 12px;border-radius:9px;font-size:12px;font-weight:600;
+  background-color:var(--bg-elev-2);color:var(--text);border:1px solid var(--glass-border);
+  appearance:none;-webkit-appearance:none;
+  background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='10' height='6'><path d='M0 0l5 6 5-6z' fill='%239b9ea6'/></svg>");
+  background-repeat:no-repeat;background-position:right 12px center;}
+.sort-select:focus{border-color:var(--primary);}
+.sort-select option{background:var(--bg-elev-2);color:var(--text);}
+.list-meta{font-size:11.5px;color:var(--text-faint);margin:0 2px 10px;}
+
+.value-list{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:10px;
+  max-height:560px;overflow-y:auto;padding-right:4px;}
+.empty-state{padding:40px 10px;text-align:center;color:var(--text-faint);font-size:13.5px;grid-column:1/-1;}
+.empty-state i{font-size:22px;display:block;margin-bottom:10px;opacity:.6;}
+
+.value-card{display:flex;align-items:center;gap:11px;padding:10px;border-radius:var(--radius-sm);
+  background:var(--glass);border:1px solid var(--glass-border);transition:border-color .2s ease, transform .2s ease, background .2s ease;}
+.value-card:hover{border-color:rgba(255,255,255,0.4);background:rgba(255,255,255,0.06);transform:translateY(-2px);}
+.value-card img{width:48px;height:48px;border-radius:10px;flex-shrink:0;object-fit:cover;border:1px solid rgba(255,255,255,0.08);}
+.vc-info{flex:1;min-width:0;}
+.vc-info .vname{font-weight:600;font-size:13px;margin-bottom:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.vc-info .vprice{color:var(--primary);font-size:12.5px;font-weight:600;}
+.vc-tags{display:flex;gap:4px;flex-wrap:wrap;margin-top:5px;}
+.demand-badge{display:inline-flex;align-items:center;gap:4px;font-size:10px;font-weight:700;letter-spacing:0.3px;
+  padding:3px 7px;border-radius:999px;text-transform:uppercase;}
+.demand-high{background:rgba(94,230,168,0.14);color:var(--high);}
+.demand-med{background:rgba(245,207,107,0.14);color:var(--med);}
+.demand-low{background:rgba(255,122,146,0.14);color:var(--low);}
+.demand-unknown{background:rgba(255,255,255,0.07);color:var(--text-faint);}
+.custom-tag{font-size:10px;font-weight:600;padding:3px 7px;border-radius:999px;background:rgba(255,255,255,0.06);color:var(--text-dim);}
+
+/* ---------- calculator (full-width, bloxfruitsvalues.com-style) ---------- */
+.calc-panel{border-radius:22px;padding:26px;
+  background:linear-gradient(165deg, rgba(255,255,255,0.05), rgba(255,255,255,0.015));
+  border:1px solid var(--glass-border);backdrop-filter:blur(14px);
+  box-shadow:0 24px 50px -30px rgba(0,0,0,0.7);}
+.calc-head{margin-bottom:20px;}
+.calc-eyebrow{font-size:11px;font-weight:700;letter-spacing:1.2px;text-transform:uppercase;color:var(--text-faint);}
+.calc-head h3{margin:6px 0 5px;font-size:22px;font-family:var(--font-heading);display:flex;align-items:center;gap:10px;letter-spacing:0.1px;}
+.calc-head h3 i{color:var(--text-dim);font-size:19px;}
+.calc-head .calc-sub{font-size:13px;color:var(--text-faint);line-height:1.5;}
+
+.calc-sides{display:grid;grid-template-columns:1fr 220px 1fr;gap:18px;align-items:start;}
+@media (max-width:900px){.calc-sides{grid-template-columns:1fr;}}
+
+.calc-side{background:rgba(255,255,255,0.025);border:1px solid var(--glass-border);border-radius:18px;padding:16px;}
+.calc-side-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;flex-wrap:wrap;gap:8px;}
+.calc-side-head h4{font-size:14px;text-transform:uppercase;letter-spacing:1px;margin:0;font-weight:800;}
+.calc-side.you h4{color:var(--you);} .calc-side.them h4{color:var(--them);}
+.calc-side-stats{display:flex;gap:14px;}
+.calc-side-stats .stat{display:flex;flex-direction:column;align-items:flex-end;line-height:1.25;}
+.calc-side-stats .stat-label{font-size:9px;text-transform:uppercase;letter-spacing:0.5px;color:var(--text-faint);font-weight:700;}
+.calc-side-stats .stat-val{font-size:14px;font-weight:700;}
+
+.calc-items{display:flex;flex-direction:column;gap:7px;min-height:10px;margin-bottom:10px;max-height:280px;overflow-y:auto;}
+.calc-item{display:flex;align-items:center;gap:9px;background:rgba(255,255,255,0.045);border:1px solid var(--glass-border);
+  border-radius:11px;padding:8px 10px;font-size:12.5px;transition:.15s;}
+.calc-item:hover{background:rgba(255,255,255,0.07);}
+.calc-item img{width:28px;height:28px;border-radius:7px;flex-shrink:0;object-fit:cover;}
+.calc-item span{flex:1;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;}
+.calc-item .ci-price{color:var(--text-dim);font-size:11px;font-weight:600;flex:none;}
+.calc-item button{background:none;border:none;color:var(--text-faint);font-size:14px;line-height:1;padding:2px 4px;cursor:pointer;}
+.calc-item button:hover{color:var(--low);}
+.add-item-btn{width:100%;padding:11px;border-radius:11px;border:1px dashed var(--glass-border);background:transparent;
+  color:var(--text-dim);font-size:12.5px;font-weight:700;transition:.2s;cursor:pointer;}
+.add-item-btn:hover{border-color:var(--primary);color:var(--primary);background:rgba(255,255,255,0.06);}
+
+.calc-vs{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;padding:20px 8px;
+  align-self:stretch;}
+.vs-badge{font-family:var(--font-heading);font-weight:800;font-size:15px;letter-spacing:0.2px;text-align:center;
+  padding:8px 14px;border-radius:999px;background:rgba(255,255,255,0.05);border:1px solid var(--glass-border);
+  background-clip:padding-box;transition:.25s;}
+.vs-badge.lead-you{color:var(--you);border-color:rgba(199,201,207,0.5);background:rgba(199,201,207,0.1);}
+.vs-badge.lead-them{color:var(--them);border-color:rgba(207,168,118,0.5);background:rgba(207,168,118,0.1);}
+.balance-meter{width:100%;height:9px;border-radius:999px;background:rgba(255,255,255,0.08);overflow:hidden;position:relative;}
+.balance-fill{position:absolute;top:0;bottom:0;left:50%;width:0;border-radius:999px;transition:left .35s ease, width .35s ease, background .35s ease;}
+.vs-diff{font-size:11px;color:var(--text-faint);font-weight:600;text-align:center;}
+.vs-icon{color:var(--text-faint);font-size:16px;opacity:.5;}
+
+.calc-actions{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;margin-top:20px;
+  padding-top:16px;border-top:1px solid var(--glass-border);}
+.calc-actions .small-note{margin:0;}
+
+.ad-slot{border-radius:14px;border:1px dashed var(--glass-border);background:rgba(255,255,255,0.015);
+  padding:16px;text-align:center;color:var(--text-faint);font-size:11px;letter-spacing:0.3px;text-transform:uppercase;font-weight:700;min-height:90px;
+  display:flex;align-items:center;justify-content:center;}
+
+/* ---------- modal ---------- */
+.modal-overlay{position:fixed;inset:0;background:rgba(6,8,16,0.7);backdrop-filter:blur(6px);
+  display:none;align-items:center;justify-content:center;z-index:100;padding:20px;}
+.modal-overlay.active{display:flex;animation:fadeIn .2s ease both;}
+@keyframes fadeIn{from{opacity:0;}to{opacity:1;}}
+.modal-box{width:100%;max-width:480px;max-height:74vh;display:flex;flex-direction:column;border-radius:18px;padding:16px;
+  background:linear-gradient(165deg, var(--bg-elev-2), var(--bg-elev));border:1px solid var(--glass-border);
+  box-shadow:0 30px 60px -20px rgba(0,0,0,0.6);}
+.modal-box h3{margin:0 0 10px;font-size:16px;display:flex;justify-content:space-between;align-items:center;flex-shrink:0;}
+.modal-box h3 button{background:none;border:none;color:var(--text-faint);font-size:18px;}
+.modal-box .search-box{margin-bottom:10px;flex-shrink:0;}
+.modal-list{display:flex;flex-direction:column;gap:6px;overflow-y:auto;}
+.modal-item{display:flex;align-items:center;gap:12px;padding:9px 10px;border-radius:10px;background:var(--glass);
+  border:1px solid transparent;transition:.15s;}
+.modal-item:hover{border-color:rgba(255,255,255,0.4);background:rgba(255,255,255,0.08);cursor:pointer;}
+.modal-item img{width:36px;height:36px;border-radius:8px;}
+.modal-item .mi-name{flex:1;font-size:13px;font-weight:600;}
+.modal-item .mi-price{font-size:11.5px;color:var(--text-dim);}
+
+/* ---------- admin ---------- */
+.admin-layout{display:grid;grid-template-columns:230px 1fr;gap:20px;}
+@media (max-width:800px){.admin-layout{grid-template-columns:1fr;}}
+.admin-side{border-radius:var(--radius);padding:14px;background:var(--glass);border:1px solid var(--glass-border);height:fit-content;}
+.admin-side .side-title{font-size:11px;text-transform:uppercase;letter-spacing:1px;color:var(--text-faint);font-weight:700;margin:14px 6px 8px;}
+.admin-side .side-title:first-child{margin-top:0;}
+.side-game{display:flex;align-items:center;gap:8px;padding:9px 10px;border-radius:9px;font-size:13px;font-weight:600;color:var(--text-dim);margin-bottom:2px;}
+.side-game:hover{background:rgba(255,255,255,0.08);cursor:pointer;color:var(--text);}
+.side-game.active{background:rgba(255,255,255,0.16);color:var(--primary);}
+.add-game-box{display:flex;flex-direction:column;gap:8px;padding:10px;border-radius:10px;background:rgba(255,255,255,0.03);
+  border:1px dashed var(--glass-border);margin-top:6px;}
+.add-game-box input{width:100%;}
+
+.admin-main{border-radius:var(--radius);padding:20px;background:var(--glass);border:1px solid var(--glass-border);}
+.admin-row{display:flex;align-items:center;gap:10px;margin-bottom:16px;flex-wrap:wrap;}
+.field{display:flex;flex-direction:column;gap:5px;}
+.field label{font-size:10.5px;color:var(--text-faint);text-transform:uppercase;letter-spacing:0.5px;font-weight:700;}
+input,select{background:rgba(255,255,255,0.05);border:1px solid var(--glass-border);border-radius:8px;color:var(--text);
+  padding:8px 10px;font-size:13px;font-family:inherit;outline:none;transition:border-color .2s;}
+input:focus,select:focus{border-color:var(--primary);}
+input::placeholder{color:var(--text-faint);}
+.btn{padding:9px 15px;border-radius:9px;border:1px solid var(--glass-border);background:rgba(255,255,255,0.05);
+  color:var(--text);font-size:13px;font-weight:600;display:inline-flex;align-items:center;gap:7px;transition:.2s;}
+.btn:hover{border-color:rgba(255,255,255,0.5);background:rgba(255,255,255,0.1);}
+.btn-primary{background:linear-gradient(120deg,var(--grad-a),var(--grad-b));color:#101012;border:none;}
+.btn-primary:hover{filter:brightness(1.08);}
+.btn-danger:hover{border-color:rgba(255,122,146,0.5);background:rgba(255,122,146,0.1);color:var(--low);}
+.btn-small{padding:6px 10px;font-size:11.5px;}
+
+.admin-items{display:flex;flex-direction:column;gap:8px;margin-top:14px;}
+.admin-item-row{display:flex;flex-wrap:wrap;gap:8px;align-items:flex-end;
+  background:rgba(255,255,255,0.03);padding:10px;border-radius:10px;border:1px solid var(--glass-border);}
+.admin-item-row img{width:34px;height:34px;border-radius:7px;align-self:center;}
+.mini-field{display:flex;flex-direction:column;gap:4px;min-width:88px;}
+.mini-field.wide{min-width:150px;flex:1;}
+.mini-field label{font-size:9px;text-transform:uppercase;letter-spacing:0.4px;color:var(--text-faint);font-weight:700;}
+.mini-field input,.mini-field select{padding:6px 8px;font-size:12px;width:100%;}
+.remove-row{background:none;border:none;color:var(--text-faint);font-size:15px;align-self:center;margin-left:auto;}
+.remove-row:hover{color:var(--low);}
+.section-title{font-size:14px;font-weight:700;margin:22px 0 4px;display:flex;align-items:center;gap:8px;}
+.divider{height:1px;background:var(--glass-border);margin:18px 0;}
+.small-note{font-size:11.5px;color:var(--text-faint);margin-top:6px;line-height:1.5;}
+.fetch-row{display:flex;gap:8px;align-items:flex-end;flex-wrap:wrap;}
+
+.cf-row{display:flex;gap:8px;align-items:flex-end;flex-wrap:wrap;background:rgba(255,255,255,0.03);
+  padding:10px;border-radius:10px;border:1px solid var(--glass-border);margin-bottom:8px;}
+
+.toast{position:fixed;bottom:24px;right:24px;padding:12px 18px;border-radius:10px;
+  background:linear-gradient(120deg,var(--grad-a),var(--grad-b));color:#101012;font-size:13px;font-weight:700;
+  box-shadow:0 12px 30px -8px rgba(0,0,0,0.45);transform:translateY(20px);opacity:0;transition:all .3s ease;z-index:200;max-width:320px;}
+.toast.show{transform:translateY(0);opacity:1;}
+</style>
+</head>
+<body>
+<div class="app">
+  <div class="topbar">
+    <div class="brand"><div class="mark" id="brand-mark">L</div><span id="brand-name">Ledger</span></div>
+    <nav id="topbar-nav">
+      <button class="nav-btn active" data-nav="home"><i class="fa-solid fa-house"></i><span id="nav-hub-label">Hub</span></button>
+    </nav>
+  </div>
+
+  <!-- HOME -->
+  <section class="screen active" id="screen-home">
+    <div class="hero" id="home-hero">
+      <div class="eyebrow" id="home-eyebrow">Community trading values</div>
+      <h1 id="home-title">Six games. One ledger.</h1>
+      <p id="home-sub">Pick a game to browse current values, gauge demand, and run a trade through the calculator before you commit.</p>
+    </div>
+    <div class="game-grid" id="game-grid"></div>
+  </section>
+
+  <!-- GAME DETAIL -->
+  <section class="screen" id="screen-game">
+    <div class="detail-head">
+      <a class="back-btn" id="back-to-hub" href="#"><i class="fa-solid fa-arrow-left"></i>Back</a>
+      <div>
+        <h2 id="game-title">Game</h2>
+        <div class="sub" id="game-sub">game.ledger.gg</div>
+      </div>
+    </div>
+    <div class="detail-stack">
+      <div class="calc-panel" id="game-calc">
+        <div class="calc-head">
+          <span class="calc-eyebrow" id="calc-eyebrow">Trade Analysis</span>
+          <h3 id="calc-title"><i class="fa-solid fa-scale-balanced"></i> Trade Calculator</h3>
+          <div class="calc-sub" id="calc-subtitle">Add items to each side to compare value and demand before you commit.</div>
+        </div>
+
+        <div class="calc-sides">
+          <div class="calc-side you">
+            <div class="calc-side-head">
+              <h4 id="calc-you-label">You</h4>
+              <div class="calc-side-stats">
+                <div class="stat"><span class="stat-label">Value</span><span class="stat-val" id="you-value">0</span></div>
+                <div class="stat"><span class="stat-label">Demand</span><span class="stat-val" id="you-demand">—</span></div>
+              </div>
+            </div>
+            <div class="calc-items" id="calc-you"></div>
+            <button class="add-item-btn" data-side="you"><i class="fa-solid fa-plus"></i> Add item</button>
+          </div>
+
+          <div class="calc-vs">
+            <div class="vs-badge" id="calc-result-text">Neutral</div>
+            <div class="balance-meter"><div class="balance-fill" id="balance-fill"></div></div>
+            <div class="vs-diff" id="calc-diff">0 difference</div>
+            <div class="vs-icon"><i class="fa-solid fa-right-left"></i></div>
+          </div>
+
+          <div class="calc-side them">
+            <div class="calc-side-head">
+              <h4 id="calc-them-label">Them</h4>
+              <div class="calc-side-stats">
+                <div class="stat"><span class="stat-label">Value</span><span class="stat-val" id="them-value">0</span></div>
+                <div class="stat"><span class="stat-label">Demand</span><span class="stat-val" id="them-demand">—</span></div>
+              </div>
+            </div>
+            <div class="calc-items" id="calc-them"></div>
+            <button class="add-item-btn" data-side="them"><i class="fa-solid fa-plus"></i> Add item</button>
+          </div>
+        </div>
+
+        <div class="calc-actions">
+          <span class="small-note">Click an item's &times; to remove it from that side.</span>
+          <button class="btn btn-danger" id="calc-reset-btn"><i class="fa-solid fa-rotate-left"></i> Reset calculator</button>
+        </div>
+      </div>
+
+      <div class="ad-slot" id="calc-ad-slot">Ad space</div>
+
+      <div>
+        <div class="list-toolbar">
+          <div class="search-box">
+            <i class="fa-solid fa-magnifying-glass"></i>
+            <input type="text" id="item-search" placeholder="Search items by name…">
+          </div>
+          <div class="filter-group">
+            <span class="filter-label">Demand:</span>
+            <div class="chip-row" id="demand-chips">
+              <button class="chip active" data-demand="all">All</button>
+              <button class="chip" data-demand="High">High</button>
+              <button class="chip" data-demand="Med">Med</button>
+              <button class="chip" data-demand="Low">Low</button>
+              <button class="chip" data-demand="Unknown">Unknown</button>
+            </div>
+          </div>
+          <select class="sort-select" id="sort-select">
+            <option value="name">Sort: Name A–Z</option>
+            <option value="price-desc">Sort: Price high–low</option>
+            <option value="price-asc">Sort: Price low–high</option>
+          </select>
+        </div>
+        <div class="list-meta" id="list-meta">Showing 0 items</div>
+        <div class="value-list" id="value-list"></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ADMIN -->
+  <section class="screen" id="screen-admin">
+    <div class="hero" style="margin-bottom:20px;">
+      <div class="eyebrow">Control panel</div>
+      <h1 style="font-size:28px;">Manage games &amp; items</h1>
+    </div>
+    <div class="admin-layout">
+      <div class="admin-side">
+        <div class="side-title">Site</div>
+        <div id="admin-site-btn" class="side-game"><i class="fa-solid fa-paintbrush"></i> Site &amp; Branding</div>
+        <div class="side-title">Games</div>
+        <div id="admin-game-list"></div>
+        <div class="side-title">New game</div>
+        <button class="btn" id="toggle-add-game" style="width:100%;justify-content:center;"><i class="fa-solid fa-plus"></i> Add game</button>
+        <div class="add-game-box" id="add-game-box" style="display:none;">
+          <div class="field"><label>Name</label><input id="new-game-name" placeholder="e.g. Rivals"></div>
+          <div class="field"><label>Icon (Font Awesome class)</label><input id="new-game-icon" placeholder="fa-solid fa-gamepad"></div>
+          <div class="field"><label>URL slug</label><input id="new-game-slug" placeholder="auto from name"></div>
+          <button class="btn btn-primary" id="create-game-btn" style="justify-content:center;">Create game</button>
+        </div>
+      </div>
+      <div class="admin-main" id="admin-main"></div>
+    </div>
+  </section>
+</div>
+
+<div class="modal-overlay" id="modal-overlay">
+  <div class="modal-box">
+    <h3><span id="modal-title">Choose an item</span><button id="modal-close">&times;</button></h3>
+    <div class="search-box"><i class="fa-solid fa-magnifying-glass"></i><input type="text" id="modal-search" placeholder="Search…"></div>
+    <div class="modal-list" id="modal-list"></div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+/* ============ CONFIG / ROUTING ============ */
+
+function rootUrl(){ return window.location.origin + window.location.pathname; }
+function gameUrl(g){ return `${rootUrl()}#/${g.slug}`; }
+function currentSlug(){
+  const m = /^#\/(.+)$/.exec(window.location.hash);
+  return m ? decodeURIComponent(m[1]) : null;
+}
+function slugify(str){ return (str||"").toLowerCase().replace(/[^a-z0-9]+/g,"") || "game"; }
+function uniqueSlug(base){
+  let s = base, i = 2;
+  while(GAMES.some(g=>g.slug===s)){ s = base+i; i++; }
+  return s;
+}
+
+/* ============ DEFAULT DATA ============ */
+const DEFAULT_GAMES = [
+  {name:"Blox Fruits", icon:"fa-solid fa-fish", items:[
+    ["Dark-Dark Fruit","2.4k","High"],["Leopard Fruit","1.9k","High"],["Buddha Fruit","950","Med"],
+    ["Dragon Fruit","1.3k","High"],["Rocket Fruit","120","Low"],["Portal Fruit","2.1k","High"],
+    ["Control Fruit","880","Med"],["Sound Fruit","210","Low"],["Quake Fruit","2.6k","High"],
+    ["Spider Fruit","310","Med"],["Ice Fruit","760","Med"],["Magma Fruit","1.5k","High"],
+    ["Love Fruit","95","Low"],["Spike Fruit","140","Low"],["Barrier Fruit","1.05k","Med"]
+  ]},
+  {name:"Grow a Garden", icon:"fa-solid fa-seedling", items:[
+    ["Moon Melon Seed","640","Med"],["Golden Carrot","1.1k","High"],["Dragon Fruit Sapling","2.2k","High"],
+    ["Rainbow Fertilizer","300","Med"],["Basic Watering Can","45","Low"],["Sunfruit Seed","770","Med"],
+    ["Mythic Sprinkler","1.6k","High"],["Comet Seed","410","Med"],["Stardust Soil","95","Low"]
+  ]},
+  {name:"Adopt Me", icon:"fa-solid fa-paw", items:[
+    ["Shadow Dragon","3.1k","High"],["Frost Dragon","2.8k","High"],["Giraffe","95","Low"],
+    ["Owl","410","Med"],["Bat Dragon","2.6k","High"],["Kangaroo","150","Low"],["Griffin","1.2k","Med"]
+  ]},
+  {name:"Murder Mystery 2", icon:"fa-solid fa-knife", items:[
+    ["Chroma Lightbringer","4.2k","High"],["Ghost Knife","560","Med"],["Corrupt","1.4k","High"],
+    ["Harvester","2.9k","High"],["Candy Cane","80","Low"],["Nebula Gun","1.1k","Med"]
+  ]},
+  {name:"Pet Simulator 99", icon:"fa-solid fa-cat", items:[
+    ["Rainbow Huge Cat","5.6k","High"],["Golden Egg","310","Med"],["Titanic Dog","1.8k","High"],
+    ["Diamond Key","95","Low"],["Void Coin","640","Med"],["Huge Phoenix","3.4k","High"]
+  ]},
+  {name:"Blade Ball", icon:"fa-solid fa-circle-dot", items:[
+    ["Mythic Katana Skin","1.2k","High"],["Void Trail","430","Med"],["Rare Emote","60","Low"],
+    ["Legendary Blade","980","High"],["Basic Trail","30","Low"],["Ancient Ball Skin","1.5k","High"]
+  ]}
+];
+
+function hashColor(str){ let h=0; for(let i=0;i<str.length;i++){h=str.charCodeAt(i)+((h<<5)-h);} return `hsl(${Math.abs(h)%360},62%,58%)`; }
+function hashColor2(str){ let h=0; for(let i=0;i<str.length;i++){h=(str.charCodeAt(i)*7)+((h<<5)-h);} return `hsl(${Math.abs(h)%360},70%,38%)`; }
+function genImg(name){
+  const c1 = hashColor(name), c2 = hashColor2(name);
+  const initials = name.split(" ").slice(0,2).map(w=>w[0]).join("").toUpperCase();
+  const svg = `<svg xmlns='http://www.w3.org/2000/svg' width='72' height='72'>
+    <defs><linearGradient id='g' x1='0' y1='0' x2='1' y2='1'><stop offset='0%' stop-color='${c1}'/><stop offset='100%' stop-color='${c2}'/></linearGradient></defs>
+    <rect width='72' height='72' rx='14' fill='url(#g)'/>
+    <text x='36' y='44' font-family='Plus Jakarta Sans,sans-serif' font-size='24' font-weight='700' fill='rgba(255,255,255,0.92)' text-anchor='middle'>${initials}</text>
+  </svg>`;
+  return "data:image/svg+xml;base64," + btoa(svg);
+}
+function defaultFieldLabels(){ return { name: "Name", price: "Price", demand: "Demand" }; }
+function buildDefaults(){
+  return DEFAULT_GAMES.map((g,idx)=>({
+    id: idx+1, slug: slugify(g.name), name: g.name, icon: g.icon, image: "", footerText: "", customFields: [], fieldLabels: defaultFieldLabels(),
+    values: g.items.map((it,i)=>({ id: idx*100+i+1, name: it[0], price: it[1], demand: it[2], img: genImg(it[0]), custom:{} }))
+  }));
+}
+
+const STORAGE_KEY = "ledger_trade_hub_v2";
+let GAMES = [];
+let currentGameIdx = null;
+let currentAdminGameIdx = 0;
+let adminMode = "game"; // "game" | "site"
+let calcSides = { you: [], them: [] };
+let modalTarget = null;
+let listFilter = { search:"", demand:"all", sort:"name" };
+
+/* ---- Site & branding config: lets the admin edit hub text/icons/fonts/alignment without touching code ---- */
+const SITE_STORAGE_KEY = "ledger_site_config_v1";
+const FONT_OPTIONS = {
+  jakarta: { label:"Plus Jakarta Sans (bold, modern)", css:"'Plus Jakarta Sans',sans-serif" },
+  inter:   { label:"Inter (clean, neutral)",            css:"'Inter',sans-serif" },
+  poppins: { label:"Poppins (rounded, friendly)",        css:"'Poppins',sans-serif" }
+};
+function defaultSiteConfig(){
+  return {
+    brandMark: "L",
+    brandName: "Ledger",
+    navHubLabel: "Hub",
+    navAdminLabel: "Admin",
+    heroEyebrow: "Community trading values",
+    heroTitle: "Six games. One ledger.",
+    heroSub: "Pick a game to browse current values, gauge demand, and run a trade through the calculator before you commit.",
+    headingFont: "jakarta",
+    bodyFont: "inter",
+    heroAlign: "left", // left | center | right
+    accentColor: "#c7c9cf",
+    logoImage: "",
+    cornerStyle: "rounded", // rounded | sharp
+    defaultSort: "name", // name | price-desc | price-asc
+    calcEyebrow: "Trade Analysis",
+    calcTitle: "Trade Calculator",
+    calcSubtitle: "Add items to each side to compare value and demand before you commit.",
+    calcYouLabel: "You",
+    calcThemLabel: "Them",
+    showAdSlot: true
+  };
+}
+/* ============ SUPABASE (shared backend, so admin edits show up for every visitor) ============ */
+const SUPABASE_CREDS_KEY = "ledger_supabase_creds_v1";
+let SUPABASE_URL = "", SUPABASE_ANON_KEY = "", sbClient = null;
+function loadSupabaseCreds(){
+  try{
+    const raw = localStorage.getItem(SUPABASE_CREDS_KEY);
+    if(raw){ const c = JSON.parse(raw); SUPABASE_URL = c.url||""; SUPABASE_ANON_KEY = c.key||""; }
+  }catch(e){ console.warn("supabase creds read failed", e); }
+}
+function saveSupabaseCreds(url, key){
+  SUPABASE_URL = url.trim(); SUPABASE_ANON_KEY = key.trim(); sbClient = null;
+  try{ localStorage.setItem(SUPABASE_CREDS_KEY, JSON.stringify({ url: SUPABASE_URL, key: SUPABASE_ANON_KEY })); }catch(e){ console.warn("supabase creds write failed", e); }
+}
+function getSupabase(){
+  if(!SUPABASE_URL || !SUPABASE_ANON_KEY) return null;
+  if(!sbClient){
+    try{ sbClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY); }
+    catch(e){ console.warn("supabase client init failed", e); return null; }
+  }
+  return sbClient;
+}
+/* Generic key/value get and set against a single "kv_store" table (key text primary key, value jsonb).
+   This mirrors the old localStorage-only shape closely on purpose, so games/site-config storage barely
+   had to change shape — it just now also syncs to a shared place every visitor reads from. */
+async function kvGet(key){
+  const sb = getSupabase();
+  if(!sb) return null;
+  try{
+    const { data, error } = await sb.from("kv_store").select("value").eq("key", key).maybeSingle();
+    if(error){ console.warn("supabase read error", error); return null; }
+    return data ? data.value : null;
+  }catch(e){ console.warn("supabase read failed", e); return null; }
+}
+async function kvSet(key, value){
+  const sb = getSupabase();
+  if(!sb) return;
+  try{ await sb.from("kv_store").upsert({ key, value, updated_at: new Date().toISOString() }); }
+  catch(e){ console.warn("supabase write failed", e); }
+}
+
+let SITE_CONFIG = defaultSiteConfig();
+async function loadSiteConfig(){
+  const remote = await kvGet("site_config");
+  if(remote){
+    SITE_CONFIG = Object.assign(defaultSiteConfig(), remote);
+    try{ localStorage.setItem(SITE_STORAGE_KEY, JSON.stringify(SITE_CONFIG)); }catch(e){}
+    return;
+  }
+  try{
+    const raw = localStorage.getItem(SITE_STORAGE_KEY);
+    if(raw){ SITE_CONFIG = Object.assign(defaultSiteConfig(), JSON.parse(raw)); return; }
+  }catch(e){ console.warn("site config read failed", e); }
+  SITE_CONFIG = defaultSiteConfig();
+}
+function saveSiteConfig(){
+  try{ localStorage.setItem(SITE_STORAGE_KEY, JSON.stringify(SITE_CONFIG)); }catch(e){ console.warn("site config write failed", e); }
+  kvSet("site_config", SITE_CONFIG); // fire-and-forget sync to shared backend, if connected
+}
+function hexToRgb(hex){
+  const m = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex||"");
+  return m ? `${parseInt(m[1],16)},${parseInt(m[2],16)},${parseInt(m[3],16)}` : "199,201,207";
+}
+function applySiteConfig(){
+  const root = document.documentElement;
+  root.style.setProperty("--font-heading", (FONT_OPTIONS[SITE_CONFIG.headingFont]||FONT_OPTIONS.jakarta).css);
+  root.style.setProperty("--font-body", (FONT_OPTIONS[SITE_CONFIG.bodyFont]||FONT_OPTIONS.inter).css);
+  root.style.setProperty("--primary", SITE_CONFIG.accentColor || "#c7c9cf");
+  root.style.setProperty("--grad-a", SITE_CONFIG.accentColor || "#c7c9cf");
+  root.style.setProperty("--you", SITE_CONFIG.accentColor || "#c7c9cf");
+  root.style.setProperty("--radius", SITE_CONFIG.cornerStyle === "sharp" ? "6px" : "16px");
+  root.style.setProperty("--radius-sm", SITE_CONFIG.cornerStyle === "sharp" ? "4px" : "10px");
+
+  const brandMarkEl = document.getElementById("brand-mark");
+  if(brandMarkEl){
+    brandMarkEl.innerHTML = SITE_CONFIG.logoImage
+      ? `<img src="${escapeAttr(SITE_CONFIG.logoImage)}" alt="" style="width:100%;height:100%;object-fit:cover;">`
+      : escapeHtml(SITE_CONFIG.brandMark || "L");
+  }
+  const brandNameEl = document.getElementById("brand-name"); if(brandNameEl) brandNameEl.textContent = SITE_CONFIG.brandName || "Ledger";
+  const navHubEl = document.getElementById("nav-hub-label"); if(navHubEl) navHubEl.textContent = SITE_CONFIG.navHubLabel || "Hub";
+  const navAdminEl = document.getElementById("nav-admin-label"); if(navAdminEl) navAdminEl.textContent = SITE_CONFIG.navAdminLabel || "Admin";
+
+  const heroEl = document.getElementById("home-hero");
+  if(heroEl){
+    heroEl.classList.remove("align-center","align-right");
+    if(SITE_CONFIG.heroAlign === "center") heroEl.classList.add("align-center");
+    else if(SITE_CONFIG.heroAlign === "right") heroEl.classList.add("align-right");
+  }
+  const eyebrowEl = document.getElementById("home-eyebrow"); if(eyebrowEl) eyebrowEl.textContent = SITE_CONFIG.heroEyebrow || "";
+  const titleEl = document.getElementById("home-title"); if(titleEl) titleEl.textContent = SITE_CONFIG.heroTitle || "";
+  const subEl = document.getElementById("home-sub"); if(subEl) subEl.textContent = SITE_CONFIG.heroSub || "";
+
+  const calcEyebrowEl = document.getElementById("calc-eyebrow"); if(calcEyebrowEl) calcEyebrowEl.textContent = SITE_CONFIG.calcEyebrow || "";
+  const calcTitleEl = document.getElementById("calc-title");
+  if(calcTitleEl) calcTitleEl.innerHTML = `<i class="fa-solid fa-scale-balanced"></i> ${escapeHtml(SITE_CONFIG.calcTitle || "Trade Calculator")}`;
+  const calcSubtitleEl = document.getElementById("calc-subtitle"); if(calcSubtitleEl) calcSubtitleEl.textContent = SITE_CONFIG.calcSubtitle || "";
+  const calcYouEl = document.getElementById("calc-you-label"); if(calcYouEl) calcYouEl.textContent = SITE_CONFIG.calcYouLabel || "You";
+  const calcThemEl = document.getElementById("calc-them-label"); if(calcThemEl) calcThemEl.textContent = SITE_CONFIG.calcThemLabel || "Them";
+  const adSlotEl = document.getElementById("calc-ad-slot"); if(adSlotEl) adSlotEl.style.display = SITE_CONFIG.showAdSlot === false ? "none" : "flex";
+
+  const sortSelectEl = document.getElementById("sort-select");
+  if(sortSelectEl && listFilter && !listFilter._userChangedSort){
+    listFilter.sort = SITE_CONFIG.defaultSort || "name";
+    sortSelectEl.value = listFilter.sort;
+  }
+
+  document.title = (SITE_CONFIG.brandName || "Ledger") + " — Trading Value Hub";
+}
+
+function migrateGames(){
+  GAMES.forEach(g=>{
+    if(!g.customFields) g.customFields=[];
+    if(!g.slug) g.slug=slugify(g.name);
+    if(!g.fieldLabels) g.fieldLabels=defaultFieldLabels();
+    if(g.image===undefined) g.image="";
+    if(g.footerText===undefined) g.footerText="";
+    g.values.forEach(v=>{ if(!v.custom) v.custom={}; });
+  });
+}
+async function loadFromStorage(){
+  const remote = await kvGet("games");
+  if(remote){
+    GAMES = remote; migrateGames();
+    try{ localStorage.setItem(STORAGE_KEY, JSON.stringify(GAMES)); }catch(e){}
+    return;
+  }
+  try{
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if(raw){ GAMES = JSON.parse(raw); migrateGames(); return; }
+  }catch(e){ console.warn("storage read failed", e); }
+  GAMES = buildDefaults();
+  saveToStorage();
+}
+function saveToStorage(){
+  try{ localStorage.setItem(STORAGE_KEY, JSON.stringify(GAMES)); }catch(e){ console.warn("storage write failed", e); }
+  kvSet("games", GAMES); // fire-and-forget sync to shared backend, if connected
+}
+function resetToDefault(){
+  GAMES = buildDefaults(); saveToStorage(); showToast("Reset to default data"); renderHome(); renderAdmin();
+}
+
+/* ============ NAV ============ */
+function goTo(screen){
+  document.querySelectorAll(".screen").forEach(s=>s.classList.remove("active"));
+  document.getElementById("screen-"+screen).classList.add("active");
+  document.querySelectorAll("#topbar-nav .nav-btn").forEach(b=>b.classList.toggle("active", b.dataset.nav===screen));
+}
+function wireNav(){
+  document.querySelectorAll("#topbar-nav [data-nav]").forEach(el=>{
+    el.addEventListener("click", ()=>{
+      const target = el.dataset.nav;
+      goTo(target);
+      if(target==="admin") renderAdmin();
+    });
+  });
+}
+
+/* ============ HOME ============ */
+function renderHome(){
+  const grid = document.getElementById("game-grid");
+  grid.innerHTML = "";
+  GAMES.forEach((g, idx)=>{
+    const card = document.createElement("a");
+    card.className = "game-card";
+    card.href = gameUrl(g);
+    const giInner = g.image ? `<img src="${escapeAttr(g.image)}" alt="">` : `<i class="${g.icon || 'fa-solid fa-gamepad'}"></i>`;
+    const footerHtml = g.footerText ? `<div class="gc-footer">${escapeHtml(g.footerText)}</div>` : "";
+    card.innerHTML = `
+      <i class="fa-solid fa-arrow-up-right-from-square arrow"></i>
+      <div class="gi">${giInner}</div>
+      <div class="gc-body">
+        <h3>${escapeHtml(g.name)}</h3>
+        <div class="count">${g.values.length} items tracked</div>
+        <div class="sub-url">${rootUrl()}#/${g.slug}</div>
+        ${footerHtml}
+      </div>
+    `;
+    card.addEventListener("click", (e)=>{
+      e.preventDefault();
+      window.location.hash = "/"+g.slug;
+    });
+    grid.appendChild(card);
+  });
+}
+
+/* ============ GAME DETAIL ============ */
+function openGameDetail(idx){
+  currentGameIdx = idx;
+  const g = GAMES[idx];
+  if(!g.fieldLabels) g.fieldLabels = defaultFieldLabels();
+  document.getElementById("game-title").textContent = g.name;
+  document.getElementById("game-sub").textContent = `${rootUrl()}#/${g.slug}`;
+  listFilter = { search:"", demand:"all", sort: SITE_CONFIG.defaultSort || "name" };
+  document.getElementById("item-search").value = "";
+  const sortSelect = document.getElementById("sort-select");
+  sortSelect.innerHTML = `
+    <option value="name">Sort: ${escapeHtml(g.fieldLabels.name)} A–Z</option>
+    <option value="price-desc">Sort: ${escapeHtml(g.fieldLabels.price)} high–low</option>
+    <option value="price-asc">Sort: ${escapeHtml(g.fieldLabels.price)} low–high</option>
+  `;
+  sortSelect.value = listFilter.sort;
+  document.querySelectorAll("#demand-chips .chip").forEach(c=>c.classList.toggle("active", c.dataset.demand==="all"));
+  const back = document.getElementById("back-to-hub");
+  back.href = rootUrl();
+  renderValueList();
+  resetTradeCalc();
+  goTo("game");
+}
+function getFilteredSortedValues(){
+  const g = GAMES[currentGameIdx];
+  let list = g.values.filter(item=>{
+    const matchesSearch = item.name.toLowerCase().includes(listFilter.search.toLowerCase());
+    const matchesDemand = listFilter.demand==="all" || item.demand===listFilter.demand;
+    return matchesSearch && matchesDemand;
+  });
+  if(listFilter.sort==="name") list = list.slice().sort((a,b)=>a.name.localeCompare(b.name));
+  else if(listFilter.sort==="price-desc") list = list.slice().sort((a,b)=>parseValue(b.price)-parseValue(a.price));
+  else if(listFilter.sort==="price-asc") list = list.slice().sort((a,b)=>parseValue(a.price)-parseValue(b.price));
+  return list;
+}
+function renderValueList(){
+  const g = GAMES[currentGameIdx];
+  const list = document.getElementById("value-list");
+  const filtered = getFilteredSortedValues();
+  document.getElementById("list-meta").textContent = `Showing ${filtered.length} of ${g.values.length} items`;
+  list.innerHTML = "";
+  if(filtered.length===0){
+    list.innerHTML = `<div class="empty-state"><i class="fa-solid fa-magnifying-glass"></i>No items match your search.</div>`;
+    return;
+  }
+  filtered.forEach(item=>{
+    const demandClass = "demand-"+item.demand.toLowerCase();
+    const customTags = (g.customFields||[]).map(f=>{
+      const val = item.custom && item.custom[f.key];
+      return val ? `<span class="custom-tag">${escapeHtml(f.label)}: ${escapeHtml(val)}</span>` : "";
+    }).join("");
+    const card = document.createElement("div");
+    card.className = "value-card";
+    card.innerHTML = `
+      <img src="${item.img}" alt="${escapeHtml(item.name)}">
+      <div class="vc-info">
+        <div class="vname">${escapeHtml(item.name)}</div>
+        <div class="vprice">${escapeHtml(formatPrice(item.price))}</div>
+        <div class="vc-tags"><span class="demand-badge ${demandClass}"><i class="fa-solid fa-chart-line"></i>${item.demand}</span>${customTags}</div>
+      </div>
+    `;
+    list.appendChild(card);
+  });
+}
+document.getElementById("item-search").addEventListener("input", (e)=>{ listFilter.search = e.target.value; renderValueList(); });
+document.getElementById("sort-select").addEventListener("change", (e)=>{ listFilter.sort = e.target.value; listFilter._userChangedSort = true; renderValueList(); });
+document.getElementById("demand-chips").addEventListener("click", (e)=>{
+  const chip = e.target.closest(".chip"); if(!chip) return;
+  document.querySelectorAll("#demand-chips .chip").forEach(c=>c.classList.remove("active"));
+  chip.classList.add("active");
+  listFilter.demand = chip.dataset.demand;
+  renderValueList();
+});
+document.getElementById("back-to-hub").addEventListener("click", (e)=>{
+  e.preventDefault();
+  window.location.hash = "";
+});
+
+/* ============ TRADE CALCULATOR ============ */
+function resetTradeCalc(){
+  calcSides = { you: [], them: [] };
+  renderCalcSide("you"); renderCalcSide("them"); updateCalcResult();
+}
+function parseValue(price){
+  if(typeof price !== "string") return Number(price)||0;
+  const p = price.trim().toLowerCase().replace(/,/g,"");
+  const num = parseFloat(p);
+  if(isNaN(num)) return 0;
+  if(p.endsWith("k")) return num*1000;
+  if(p.endsWith("m")) return num*1000000;
+  if(p.endsWith("b")) return num*1000000000;
+  return num;
+}
+const DEMAND_SCORE = { High:3, Med:2, Low:1, Unknown:0 };
+function demandSummary(items){
+  if(items.length === 0) return "—";
+  const avg = items.reduce((s,i)=>s+(DEMAND_SCORE[i.demand]||0),0) / items.length;
+  if(avg >= 2.5) return "High";
+  if(avg >= 1.5) return "Med";
+  if(avg > 0) return "Low";
+  return "Unknown";
+}
+function renderCalcSide(side){
+  const el = document.getElementById("calc-"+side);
+  el.innerHTML = "";
+  if(calcSides[side].length === 0){
+    el.innerHTML = `<div class="empty-state" style="padding:16px 6px;font-size:12px;"><i class="fa-solid fa-inbox"></i>No items yet</div>`;
+  }
+  calcSides[side].forEach((item, i)=>{
+    const row = document.createElement("div");
+    row.className = "calc-item";
+    row.innerHTML = `<img src="${item.img}" alt=""><span>${escapeHtml(item.name)}</span><span class="ci-price">${escapeHtml(formatPrice(item.price))}</span>
+      <button data-side="${side}" data-idx="${i}" title="Remove">&times;</button>`;
+    el.appendChild(row);
+  });
+  el.querySelectorAll("button").forEach(btn=>{
+    btn.addEventListener("click", ()=>{
+      calcSides[btn.dataset.side].splice(Number(btn.dataset.idx),1);
+      renderCalcSide(btn.dataset.side); updateCalcResult();
+    });
+  });
+  const valueEl = document.getElementById(side+"-value");
+  const demandEl = document.getElementById(side+"-demand");
+  if(valueEl) valueEl.textContent = formatNum(calcSides[side].reduce((s,i)=>s+parseValue(i.price),0));
+  if(demandEl) demandEl.textContent = demandSummary(calcSides[side]);
+}
+function updateCalcResult(){
+  const totalYou = calcSides.you.reduce((s,i)=>s+parseValue(i.price),0);
+  const totalThem = calcSides.them.reduce((s,i)=>s+parseValue(i.price),0);
+  const diff = totalYou - totalThem;
+  const badge = document.getElementById("calc-result-text");
+  const diffEl = document.getElementById("calc-diff");
+  badge.classList.remove("lead-you","lead-them");
+  if(Math.abs(diff) <= Math.max(totalYou,totalThem)*0.02 || (totalYou===0 && totalThem===0)){
+    badge.textContent = "Neutral";
+    diffEl.textContent = (totalYou===0 && totalThem===0) ? "Add items to compare" : "Fair trade — values are close";
+  }else if(diff > 0){
+    badge.textContent = "You lead";
+    badge.classList.add("lead-you");
+    diffEl.textContent = `Ahead by ${formatNum(diff)}`;
+  }else{
+    badge.textContent = "They lead";
+    badge.classList.add("lead-them");
+    diffEl.textContent = `Behind by ${formatNum(Math.abs(diff))}`;
+  }
+  const max = Math.max(totalYou, totalThem, 1);
+  const ratio = Math.max(-1, Math.min(1, diff / max)); // -1 (them way ahead) .. 1 (you way ahead)
+  const fill = document.getElementById("balance-fill");
+  const pct = Math.abs(ratio) * 50; // up to 50% of the bar in either direction from center
+  if(ratio >= 0){
+    fill.style.left = "50%"; fill.style.width = pct + "%";
+    fill.style.background = "linear-gradient(90deg, var(--you), var(--grad-a))";
+  }else{
+    fill.style.left = (50-pct) + "%"; fill.style.width = pct + "%";
+    fill.style.background = "linear-gradient(90deg, var(--grad-b), var(--them))";
+  }
+}
+function formatNum(n){
+  const sign = n < 0 ? "-" : "";
+  n = Math.abs(n);
+  if(n >= 1000000000) return sign + trimZero(n/1000000000) + "B";
+  if(n >= 1000000) return sign + trimZero(n/1000000) + "M";
+  if(n >= 1000) return sign + trimZero(n/1000) + "K";
+  return sign + String(Math.round(n));
+}
+function trimZero(n){
+  // one decimal place, but drop it if it's a whole number (5.0 -> 5, 5.2 stays 5.2)
+  const rounded = Math.round(n*10)/10;
+  return rounded % 1 === 0 ? String(rounded) : rounded.toFixed(1);
+}
+/* Displays any stored price string (raw numbers like "5200000000", "1500", or shorthand like "2.5m")
+   in the same consistent nearest-place-value format (5.2B / 2.5M / 1.5K) everywhere it's shown. */
+function formatPrice(price){
+  if(typeof price === "string" && !/^-?[\d,.\s]+$/.test(price.replace(/[kmb]$/i,""))) return price; // non-numeric labels (e.g. "N/A") pass through untouched
+  const n = parseValue(price);
+  if(n === 0 && String(price).trim() !== "0" && String(price).trim() !== "") return String(price);
+  return formatNum(n);
+}
+
+document.querySelectorAll(".add-item-btn").forEach(btn=>{
+  btn.addEventListener("click", ()=>{ modalTarget = btn.dataset.side; openItemModal(); });
+});
+document.getElementById("calc-reset-btn").addEventListener("click", resetTradeCalc);
+function openItemModal(){
+  document.getElementById("modal-title").textContent = `Add to ${modalTarget === "you" ? "You" : "Them"}`;
+  document.getElementById("modal-search").value = "";
+  renderModalList("");
+  document.getElementById("modal-overlay").classList.add("active");
+  document.getElementById("modal-search").focus();
+}
+function renderModalList(term){
+  const g = GAMES[currentGameIdx];
+  const list = document.getElementById("modal-list");
+  list.innerHTML = "";
+  const filtered = g.values.filter(it=>it.name.toLowerCase().includes(term.toLowerCase()));
+  if(filtered.length===0){ list.innerHTML = `<div class="empty-state"><i class="fa-solid fa-box-open"></i>No items found.</div>`; return; }
+  filtered.forEach(item=>{
+    const row = document.createElement("div");
+    row.className = "modal-item";
+    row.innerHTML = `<img src="${item.img}" alt=""><span class="mi-name">${escapeHtml(item.name)}</span><span class="mi-price">${escapeHtml(formatPrice(item.price))}</span>`;
+    row.addEventListener("click", ()=>{
+      calcSides[modalTarget].push(item); renderCalcSide(modalTarget); updateCalcResult(); closeModal();
+    });
+    list.appendChild(row);
+  });
+}
+document.getElementById("modal-search").addEventListener("input", (e)=>renderModalList(e.target.value));
+function closeModal(){ document.getElementById("modal-overlay").classList.remove("active"); }
+document.getElementById("modal-close").addEventListener("click", closeModal);
+document.getElementById("modal-overlay").addEventListener("click", (e)=>{ if(e.target.id === "modal-overlay") closeModal(); });
+
+/* ============ ADMIN ============ */
+function renderSiteAdmin(){
+  const main = document.getElementById("admin-main");
+  const fontOptionsHtml = Object.entries(FONT_OPTIONS).map(([key,f])=>
+    `<option value="${key}">${escapeHtml(f.label)}</option>`).join("");
+  const sbConnected = !!getSupabase();
+  main.innerHTML = `
+    <div class="section-title"><i class="fa-solid fa-database"></i> Backend (Supabase)</div>
+    <div class="small-note">Required so every visitor sees the same data. Without this, each browser keeps its own separate copy (localStorage only) — admin edits won't show up for anyone else. Connecting Supabase here makes the site read and write from one shared store.</div>
+    <div class="admin-row" style="margin-top:8px;">
+      <span class="demand-badge ${sbConnected ? "demand-high" : "demand-unknown"}" style="align-self:center;">
+        <i class="fa-solid ${sbConnected ? "fa-circle-check" : "fa-circle-xmark"}"></i> ${sbConnected ? "Connected" : "Not connected — using local browser storage only"}
+      </span>
+    </div>
+    <div class="admin-row" style="margin-top:8px;">
+      <div class="field" style="flex:1;min-width:260px;"><label>Supabase project URL</label>
+        <input id="sb-url" placeholder="https://xxxxxxxx.supabase.co" value="${escapeAttr(SUPABASE_URL)}"></div>
+      <div class="field" style="flex:1;min-width:260px;"><label>Supabase anon public key</label>
+        <input id="sb-key" type="password" placeholder="eyJhbGciOi..." value="${escapeAttr(SUPABASE_ANON_KEY)}"></div>
+    </div>
+    <div class="admin-row" style="margin-top:8px;">
+      <button class="btn btn-primary" id="sb-connect-btn"><i class="fa-solid fa-plug"></i> Connect &amp; sync now</button>
+    </div>
+    <div class="small-note">One-time setup: create a free project at <span class="mono">supabase.com</span>, then in its SQL editor run:</div>
+    <pre style="background:var(--bg-elev-2);border:1px solid var(--glass-border);border-radius:10px;padding:12px 14px;font-size:11.5px;overflow-x:auto;color:var(--text-dim);margin:6px 0 0;">create table kv_store (
+  key text primary key,
+  value jsonb not null,
+  updated_at timestamptz default now()
+);
+alter table kv_store enable row level security;
+-- anyone can read (needed so the public game/value pages can load without logging in)
+create policy "public read" on kv_store for select using (true);
+-- only a signed-in Supabase user (i.e. someone logged into the admin panel) can write
+create policy "authenticated upsert" on kv_store for insert to authenticated with check (true);
+create policy "authenticated update" on kv_store for update to authenticated using (true);</pre>
+    <div class="small-note" style="margin-top:8px;">Then copy the Project URL and anon public key from Project Settings → API into the fields above. Reads stay public on purpose (the value list pages need that), but writes require a valid login session — the anon key alone, even if someone finds it in page source, can't be used to modify data. Create your admin login from the sign-in screen on admin.html, then in Supabase go to Authentication → Providers → Email and turn off "Allow new users to sign up" so no one else can register.</div>
+
+    <div class="divider"></div>
+    <div class="section-title"><i class="fa-solid fa-paintbrush"></i> Branding</div>
+    <div class="small-note">Controls the logo mark, brand name, and nav labels shown in the top bar across the whole site.</div>
+    <div class="admin-row" style="margin-top:8px;">
+      <div class="field" style="min-width:100px;max-width:110px;"><label>Logo mark (fallback letter)</label><input id="site-brand-mark" maxlength="3" value="${escapeAttr(SITE_CONFIG.brandMark)}"></div>
+      <div class="field" style="flex:1;min-width:220px;"><label>Logo image URL (overrides letter if set)</label><input id="site-logo-image" placeholder="https://…" value="${escapeAttr(SITE_CONFIG.logoImage || "")}"></div>
+      
+      <div class="field" style="min-width:160px;"><label>Brand name</label><input id="site-brand-name" value="${escapeAttr(SITE_CONFIG.brandName)}"></div>
+      <div class="field" style="min-width:140px;"><label>"Hub" nav label</label><input id="site-nav-hub" value="${escapeAttr(SITE_CONFIG.navHubLabel)}"></div>
+      <div class="field" style="min-width:140px;"><label>"Admin" nav label</label><input id="site-nav-admin" value="${escapeAttr(SITE_CONFIG.navAdminLabel)}"></div>
+    </div>
+
+    <div class="divider"></div>
+    <div class="section-title"><i class="fa-solid fa-house"></i> Homepage hero text</div>
+    <div class="small-note">The eyebrow, headline, and paragraph shown at the top of the Hub homepage.</div>
+    <div class="admin-row" style="margin-top:8px;">
+      <div class="field" style="min-width:220px;flex:1;"><label>Eyebrow (small label above headline)</label><input id="site-hero-eyebrow" value="${escapeAttr(SITE_CONFIG.heroEyebrow)}"></div>
+    </div>
+    <div class="admin-row" style="margin-top:8px;">
+      <div class="field" style="min-width:220px;flex:1;"><label>Headline</label><input id="site-hero-title" value="${escapeAttr(SITE_CONFIG.heroTitle)}"></div>
+    </div>
+    <div class="admin-row" style="margin-top:8px;">
+      <div class="field" style="min-width:220px;flex:1;"><label>Paragraph</label><textarea id="site-hero-sub" rows="3" style="resize:vertical;padding:9px 12px;border-radius:8px;">${escapeHtml(SITE_CONFIG.heroSub)}</textarea></div>
+    </div>
+
+    <div class="divider"></div>
+    <div class="section-title"><i class="fa-solid fa-font"></i> Fonts &amp; alignment</div>
+    <div class="small-note">Pick fonts and an alignment once here — every heading and paragraph in the hero lines up together automatically, so nothing needs to be nudged into place by hand.</div>
+    <div class="admin-row" style="margin-top:8px;">
+      <div class="field" style="min-width:220px;"><label>Heading font</label>
+        <select id="site-heading-font">${fontOptionsHtml}</select>
+      </div>
+      <div class="field" style="min-width:220px;"><label>Body font</label>
+        <select id="site-body-font">${fontOptionsHtml}</select>
+      </div>
+      <div class="field" style="min-width:180px;"><label>Hero text alignment</label>
+        <select id="site-hero-align">
+          <option value="left">Left</option>
+          <option value="center">Center</option>
+          <option value="right">Right</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="divider"></div>
+    <div class="section-title"><i class="fa-solid fa-palette"></i> Appearance</div>
+    <div class="small-note">Accent color, corner sharpness, and the default sort order used every time a game page is opened.</div>
+    <div class="admin-row" style="margin-top:8px;">
+      <div class="field" style="min-width:90px;max-width:100px;"><label>Accent color</label>
+        <input type="color" id="site-accent-color" value="${escapeAttr(SITE_CONFIG.accentColor)}" style="padding:2px;height:38px;">
+      </div>
+      <div class="field" style="min-width:160px;"><label>Corner style</label>
+        <select id="site-corner-style">
+          <option value="rounded">Rounded</option>
+          <option value="sharp">Sharp</option>
+        </select>
+      </div>
+      <div class="field" style="min-width:200px;"><label>Default item sort</label>
+        <select id="site-default-sort">
+          <option value="name">Name A–Z</option>
+          <option value="price-desc">Price high–low</option>
+          <option value="price-asc">Price low–high</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="divider"></div>
+    <div class="section-title"><i class="fa-solid fa-scale-balanced"></i> Trade calculator text</div>
+    <div class="small-note">Wording shown on every game's trade calculator, plus whether the reserved ad-space placeholder shows below it.</div>
+    <div class="admin-row" style="margin-top:8px;">
+      <div class="field" style="min-width:180px;"><label>Eyebrow label</label><input id="site-calc-eyebrow" value="${escapeAttr(SITE_CONFIG.calcEyebrow)}"></div>
+      <div class="field" style="min-width:200px;"><label>Calculator title</label><input id="site-calc-title" value="${escapeAttr(SITE_CONFIG.calcTitle)}"></div>
+      <div class="field" style="min-width:120px;"><label>"You" side label</label><input id="site-calc-you" maxlength="16" value="${escapeAttr(SITE_CONFIG.calcYouLabel)}"></div>
+      <div class="field" style="min-width:120px;"><label>"Them" side label</label><input id="site-calc-them" maxlength="16" value="${escapeAttr(SITE_CONFIG.calcThemLabel)}"></div>
+    </div>
+    <div class="admin-row" style="margin-top:8px;">
+      <div class="field" style="min-width:220px;flex:1;"><label>Calculator subtitle</label><input id="site-calc-subtitle" value="${escapeAttr(SITE_CONFIG.calcSubtitle)}"></div>
+    </div>
+    <div class="admin-row" style="margin-top:10px;align-items:center;">
+      <label style="display:flex;align-items:center;gap:8px;font-size:13px;color:var(--text-dim);cursor:pointer;">
+        <input type="checkbox" id="site-show-ad" ${SITE_CONFIG.showAdSlot !== false ? "checked" : ""} style="width:16px;height:16px;">
+        Show reserved ad-space placeholder below the calculator
+      </label>
+    </div>
+
+    <div class="admin-row" style="margin-top:16px;">
+      <button class="btn btn-primary" id="site-save-btn"><i class="fa-solid fa-check"></i> Save site settings</button>
+      <button class="btn btn-danger" id="site-reset-btn"><i class="fa-solid fa-rotate-left"></i> Reset to default</button>
+    </div>
+  `;
+  document.getElementById("site-heading-font").value = SITE_CONFIG.headingFont;
+  document.getElementById("site-body-font").value = SITE_CONFIG.bodyFont;
+  document.getElementById("site-hero-align").value = SITE_CONFIG.heroAlign;
+  document.getElementById("site-corner-style").value = SITE_CONFIG.cornerStyle;
+  document.getElementById("site-default-sort").value = SITE_CONFIG.defaultSort;
+
+  document.getElementById("sb-connect-btn").addEventListener("click", async ()=>{
+    const url = document.getElementById("sb-url").value.trim();
+    const key = document.getElementById("sb-key").value.trim();
+    if(!url || !key){ showToast("Enter both the project URL and anon key first"); return; }
+    saveSupabaseCreds(url, key);
+    const btn = document.getElementById("sb-connect-btn");
+    btn.disabled = true; btn.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> Connecting…`;
+    try{
+      const remoteGames = await kvGet("games");
+      if(remoteGames){
+        // Remote already has data (e.g. another admin/browser set this up first) — adopt it instead of overwriting.
+        GAMES = remoteGames; migrateGames();
+      }else{
+        await kvSet("games", GAMES); // seed the shared store with what's currently in this browser
+      }
+      const remoteSite = await kvGet("site_config");
+      if(remoteSite) SITE_CONFIG = Object.assign(defaultSiteConfig(), remoteSite);
+      else await kvSet("site_config", SITE_CONFIG);
+      saveToStorage(); saveSiteConfig(); applySiteConfig(); renderAdmin(); renderHome();
+      showToast(getSupabase() ? "Connected — data now syncs for every visitor" : "Couldn't connect — check the URL/key and that the kv_store table exists");
+    }catch(e){
+      console.error(e);
+      showToast("Connection failed — check the URL/key and that the kv_store table exists");
+    }finally{
+      btn.disabled = false; btn.innerHTML = `<i class="fa-solid fa-plug"></i> Connect & sync now`;
+    }
+  });
+  document.getElementById("site-save-btn").addEventListener("click", ()=>{
+    SITE_CONFIG.brandMark = document.getElementById("site-brand-mark").value.trim() || "L";
+    SITE_CONFIG.logoImage = document.getElementById("site-logo-image").value.trim();
+    SITE_CONFIG.brandName = document.getElementById("site-brand-name").value.trim() || "Ledger";
+    SITE_CONFIG.navHubLabel = document.getElementById("site-nav-hub").value.trim() || "Hub";
+    SITE_CONFIG.navAdminLabel = document.getElementById("site-nav-admin").value.trim() || "Admin";
+    SITE_CONFIG.heroEyebrow = document.getElementById("site-hero-eyebrow").value;
+    SITE_CONFIG.heroTitle = document.getElementById("site-hero-title").value;
+    SITE_CONFIG.heroSub = document.getElementById("site-hero-sub").value;
+    SITE_CONFIG.headingFont = document.getElementById("site-heading-font").value;
+    SITE_CONFIG.bodyFont = document.getElementById("site-body-font").value;
+    SITE_CONFIG.heroAlign = document.getElementById("site-hero-align").value;
+    SITE_CONFIG.accentColor = document.getElementById("site-accent-color").value;
+    SITE_CONFIG.cornerStyle = document.getElementById("site-corner-style").value;
+    SITE_CONFIG.defaultSort = document.getElementById("site-default-sort").value;
+    SITE_CONFIG.calcEyebrow = document.getElementById("site-calc-eyebrow").value;
+    SITE_CONFIG.calcTitle = document.getElementById("site-calc-title").value.trim() || "Trade Calculator";
+    SITE_CONFIG.calcSubtitle = document.getElementById("site-calc-subtitle").value;
+    SITE_CONFIG.calcYouLabel = document.getElementById("site-calc-you").value.trim() || "You";
+    SITE_CONFIG.calcThemLabel = document.getElementById("site-calc-them").value.trim() || "Them";
+    SITE_CONFIG.showAdSlot = document.getElementById("site-show-ad").checked;
+    saveSiteConfig(); applySiteConfig();
+    showToast("Site settings saved");
+  });
+  document.getElementById("site-reset-btn").addEventListener("click", ()=>{
+    if(confirm("Reset all site & branding settings back to default?")){
+      SITE_CONFIG = defaultSiteConfig(); saveSiteConfig(); applySiteConfig(); renderSiteAdmin();
+      showToast("Site settings reset");
+    }
+  });
+}
+function renderAdmin(){
+  const siteBtn = document.getElementById("admin-site-btn");
+  siteBtn.className = "side-game" + (adminMode === "site" ? " active" : "");
+  siteBtn.onclick = ()=>{ adminMode = "site"; renderAdmin(); };
+
+  const sideList = document.getElementById("admin-game-list");
+  sideList.innerHTML = "";
+  GAMES.forEach((g, idx)=>{
+    const row = document.createElement("div");
+    row.className = "side-game" + (adminMode === "game" && idx===currentAdminGameIdx ? " active" : "");
+    row.innerHTML = `<i class="${g.icon||'fa-solid fa-gamepad'}"></i> ${escapeHtml(g.name)}`;
+    row.addEventListener("click", ()=>{ adminMode = "game"; currentAdminGameIdx = idx; renderAdmin(); });
+    sideList.appendChild(row);
+  });
+  renderAdminMain();
+}
+function renderAdminMain(){
+  if(adminMode === "site"){ renderSiteAdmin(); return; }
+  const g = GAMES[currentAdminGameIdx];
+  const main = document.getElementById("admin-main");
+  main.innerHTML = `
+    <div class="admin-row">
+      <div class="field" style="flex:1;min-width:200px;"><label>Game name</label><input id="admin-game-name" value="${escapeAttr(g.name)}"></div>
+      <div class="field" style="min-width:160px;"><label>URL slug</label><input id="admin-game-slug" value="${escapeAttr(g.slug)}"></div>
+      <div class="field"><label>Actions</label>
+        <div style="display:flex;gap:8px;">
+          <button class="btn btn-primary" id="admin-save-name"><i class="fa-solid fa-check"></i> Save</button>
+          <button class="btn btn-danger" id="admin-reset-all"><i class="fa-solid fa-rotate-left"></i> Reset all</button>
+        </div>
+      </div>
+    </div>
+    <div class="small-note">Live URL for this game: <span class="mono">${rootUrl()}#/${g.slug}</span></div>
+
+    <div class="divider"></div>
+    <div class="section-title"><i class="fa-solid fa-image"></i> Homepage card</div>
+    <div class="small-note">Controls how this game's wide panel looks on the Hub homepage — its banner image and the short footer line under the item count.</div>
+    <div class="admin-row" style="margin-top:8px;">
+      <div class="field" style="flex:1;min-width:260px;"><label>Banner image URL (falls back to the icon below if empty)</label>
+        <input id="admin-game-image" placeholder="https://…" value="${escapeAttr(g.image || "")}"></div>
+      <div class="field" style="min-width:180px;"><label>Icon (Font Awesome class, fallback only)</label>
+        <input id="admin-game-icon-edit" placeholder="fa-solid fa-gamepad" value="${escapeAttr(g.icon || "")}"></div>
+    </div>
+    <div class="admin-row" style="margin-top:8px;">
+      <div class="field" style="flex:1;min-width:260px;"><label>Footer text on homepage card</label>
+        <input id="admin-game-footer" placeholder="e.g. Updated weekly by the community" value="${escapeAttr(g.footerText || "")}"></div>
+    </div>
+
+    <div class="divider"></div>
+    <div class="section-title"><i class="fa-solid fa-tag"></i> Field labels</div>
+    <div class="small-note">Rename what the built-in fields are called for this game — e.g. change "Price" to "Value".</div>
+    <div class="admin-row" style="margin-top:8px;">
+      <div class="field" style="min-width:140px;"><label>Name field label</label><input id="label-name" value="${escapeAttr(g.fieldLabels.name)}"></div>
+      <div class="field" style="min-width:140px;"><label>Price field label</label><input id="label-price" value="${escapeAttr(g.fieldLabels.price)}"></div>
+      <div class="field" style="min-width:140px;"><label>Demand field label</label><input id="label-demand" value="${escapeAttr(g.fieldLabels.demand)}"></div>
+    </div>
+
+    <div class="section-title"><i class="fa-solid fa-wand-magic-sparkles"></i> AI-powered fetch from Fandom (via OpenRouter)</div>
+    <div class="fetch-row">
+      <div class="field" style="flex:1;min-width:220px;"><label>OpenRouter API key</label>
+        <input id="fetch-api-key" type="password" placeholder="sk-or-v1-..." value="${escapeAttr(getApiKey())}"></div>
+      <div class="field" style="min-width:180px;"><label>Model</label>
+        <input id="fetch-model" placeholder="openrouter/free" value="${escapeAttr(getModel())}"></div>
+    </div>
+    <div class="fetch-row">
+      <div class="field" style="flex:1;min-width:240px;"><label>Fandom wiki URL (optional if attaching an image)</label>
+        <input id="fetch-fandom-url" placeholder="https://roblox-bloxfruits.fandom.com/wiki/..."></div>
+      <div class="field" style="min-width:200px;"><label>Image / screenshot (optional)</label>
+        <input id="fetch-image" type="file" accept="image/*"></div>
+    </div>
+    <div class="fetch-row" style="align-items:center;">
+      <label style="display:flex;align-items:center;gap:7px;font-size:12.5px;color:var(--text-dim);font-weight:600;">
+        <input type="checkbox" id="fetch-online" checked style="width:auto;"> Use live web search for the image (finds real values/rarity for items it sees)
+      </label>
+      <button class="btn" id="fetch-btn" style="margin-left:auto;"><i class="fa-solid fa-wand-magic-sparkles"></i> Analyze with AI</button>
+    </div>
+    <div id="fetch-image-preview"></div>
+    <div class="small-note">Free: create a key at <span class="mono">openrouter.ai/keys</span> — no credit card needed. The default model, <span class="mono">openrouter/free</span>, auto-routes to whichever free model is available; use a vision-capable model from <span class="mono">openrouter.ai/models</span> if you're attaching an image. <strong>Wiki URL mode:</strong> the whole page is read in chunks so long tables aren't cut off, and every item is checked against the real page text before being kept. <strong>Image mode:</strong> the AI only reports items it can see in the picture, optionally using web search to fill in real values — these results aren't text-verified, so give them a quick look before trusting them. The key is stored only in this browser and sent directly to OpenRouter. Calling an API straight from a browser exposes the key in devtools, so keep this file private if you save one here.</div>
+    <div id="fetch-error" class="small-note" style="display:none;color:var(--low);"></div>
+
+
+    <div class="divider"></div>
+    <div class="section-title"><i class="fa-solid fa-table-cells"></i> Custom fields</div>
+    <div class="small-note">Define extra attributes for this game's items (e.g. weapon class, rarity). Each item below will get inputs for whatever you add here.</div>
+    <div id="custom-fields-list" style="margin-top:10px;"></div>
+    <button class="btn btn-small" id="add-custom-field" style="margin-top:6px;"><i class="fa-solid fa-plus"></i> Add field</button>
+
+    <div class="divider"></div>
+    <div class="section-title"><i class="fa-solid fa-list"></i> Items (${g.values.length})</div>
+    <div class="admin-items" id="admin-items"></div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:12px;">
+      <button class="btn" id="admin-add-item"><i class="fa-solid fa-plus"></i> Add item</button>
+    </div>
+  `;
+
+  renderCustomFieldsEditor();
+  renderAdminItems();
+
+  document.getElementById("admin-game-image").addEventListener("input", (e)=>{ g.image = e.target.value.trim(); saveToStorage(); renderHome(); });
+  document.getElementById("admin-game-icon-edit").addEventListener("input", (e)=>{ g.icon = e.target.value.trim(); saveToStorage(); renderHome(); });
+  document.getElementById("admin-game-footer").addEventListener("input", (e)=>{ g.footerText = e.target.value; saveToStorage(); renderHome(); });
+  document.getElementById("label-name").addEventListener("input", (e)=>{ g.fieldLabels.name = e.target.value || "Name"; saveToStorage(); renderAdminItems(); });
+  document.getElementById("label-price").addEventListener("input", (e)=>{ g.fieldLabels.price = e.target.value || "Price"; saveToStorage(); renderAdminItems(); });
+  document.getElementById("label-demand").addEventListener("input", (e)=>{ g.fieldLabels.demand = e.target.value || "Demand"; saveToStorage(); renderAdminItems(); });
+  document.getElementById("admin-save-name").addEventListener("click", ()=>{
+    const val = document.getElementById("admin-game-name").value.trim();
+    const slugVal = slugify(document.getElementById("admin-game-slug").value.trim() || val);
+    if(val){
+      g.name = val;
+      const others = GAMES.filter((gg,i)=>i!==currentAdminGameIdx);
+      g.slug = others.some(o=>o.slug===slugVal) ? uniqueSlug(slugVal) : slugVal;
+      saveToStorage(); renderAdmin(); renderHome(); showToast("Game saved");
+    }
+  });
+  document.getElementById("admin-reset-all").addEventListener("click", ()=>{
+    if(confirm("Reset ALL games and items back to defaults? This cannot be undone.")) resetToDefault();
+  });
+  document.getElementById("admin-add-item").addEventListener("click", ()=>{
+    g.values.push({ id: Date.now(), name:"New Item", price:"100", demand:"Med", img: genImg("New Item"), custom:{} });
+    saveToStorage(); renderAdmin(); renderHome();
+  });
+  document.getElementById("fetch-btn").addEventListener("click", analyzeWithAI);
+  document.getElementById("fetch-api-key").addEventListener("input", (e)=>setApiKey(e.target.value.trim()));
+  document.getElementById("fetch-model").addEventListener("input", (e)=>setModel(e.target.value.trim()));
+  document.getElementById("fetch-image").addEventListener("change", (e)=>{
+    const file = e.target.files[0];
+    if(!file) return;
+    const reader = new FileReader();
+    reader.onload = ()=>{
+      pendingImage = { dataUrl: reader.result, name: file.name, mime: file.type };
+      renderImagePreview();
+    };
+    reader.readAsDataURL(file);
+  });
+  renderImagePreview();
+  document.getElementById("add-custom-field").addEventListener("click", ()=>{
+    g.customFields.push({ key:"field"+(g.customFields.length+1), label:"New field", type:"text", options:[] });
+    saveToStorage(); renderAdmin();
+  });
+}
+
+function renderImagePreview(){
+  const el = document.getElementById("fetch-image-preview");
+  if(!el) return;
+  if(!pendingImage){ el.innerHTML = ""; return; }
+  el.innerHTML = `
+    <div class="small-note" style="display:flex;align-items:center;gap:10px;margin-top:8px;">
+      <img src="${pendingImage.dataUrl}" alt="" style="width:36px;height:36px;object-fit:cover;border-radius:7px;border:1px solid var(--glass-border);">
+      <span>Attached: ${escapeHtml(pendingImage.name)}</span>
+      <button class="btn btn-small" id="remove-fetch-image" type="button"><i class="fa-solid fa-xmark"></i> Remove</button>
+    </div>`;
+  document.getElementById("remove-fetch-image").addEventListener("click", ()=>{
+    pendingImage = null;
+    document.getElementById("fetch-image").value = "";
+    renderImagePreview();
+  });
+}
+
+function renderCustomFieldsEditor(){
+  const g = GAMES[currentAdminGameIdx];
+  const wrap = document.getElementById("custom-fields-list");
+  wrap.innerHTML = "";
+  if(g.customFields.length===0){ wrap.innerHTML = `<div class="small-note">No custom fields yet — this game only uses name, price, and demand.</div>`; return; }
+  g.customFields.forEach((f, i)=>{
+    const row = document.createElement("div");
+    row.className = "cf-row";
+    row.innerHTML = `
+      <div class="mini-field"><label>Label</label><input data-cf="label" data-idx="${i}" value="${escapeAttr(f.label)}" placeholder="Rarity"></div>
+      <div class="mini-field"><label>Type</label>
+        <select data-cf="type" data-idx="${i}"><option value="text" ${f.type==="text"?"selected":""}>Text</option><option value="select" ${f.type==="select"?"selected":""}>Dropdown</option></select>
+      </div>
+      ${f.type==="select" ? `<div class="mini-field wide"><label>Options (comma separated)</label><input data-cf="options" data-idx="${i}" value="${escapeAttr((f.options||[]).join(", "))}" placeholder="Common, Rare, Legendary"></div>` : ""}
+      <button class="remove-row" data-cf-remove="${i}" title="Remove field"><i class="fa-solid fa-trash"></i></button>
+    `;
+    wrap.appendChild(row);
+  });
+  wrap.querySelectorAll("[data-cf]").forEach(inp=>{
+    inp.addEventListener("input", ()=>{
+      const idx = Number(inp.dataset.idx);
+      const field = g.customFields[idx];
+      const key = inp.dataset.cf;
+      if(key==="label"){ field.label = inp.value; field.key = slugify(inp.value) || field.key; }
+      else if(key==="type"){ field.type = inp.value; saveToStorage(); renderAdmin(); return; }
+      else if(key==="options"){ field.options = inp.value.split(",").map(s=>s.trim()).filter(Boolean); }
+      saveToStorage();
+    });
+  });
+  wrap.querySelectorAll("[data-cf-remove]").forEach(btn=>{
+    btn.addEventListener("click", ()=>{
+      g.customFields.splice(Number(btn.dataset.cfRemove),1);
+      saveToStorage(); renderAdmin();
+    });
+  });
+}
+
+function renderAdminItems(){
+  const g = GAMES[currentAdminGameIdx];
+  const itemsWrap = document.getElementById("admin-items");
+  itemsWrap.innerHTML = "";
+  g.values.forEach((item, i)=>{
+    const customInputs = (g.customFields||[]).map(f=>{
+      const val = item.custom && item.custom[f.key] || "";
+      if(f.type==="select"){
+        const opts = (f.options||[]).map(o=>`<option value="${escapeAttr(o)}" ${val===o?"selected":""}>${escapeHtml(o)}</option>`).join("");
+        return `<div class="mini-field"><label>${escapeHtml(f.label)}</label><select data-field="custom" data-key="${escapeAttr(f.key)}" data-idx="${i}"><option value="">—</option>${opts}</select></div>`;
+      }
+      return `<div class="mini-field"><label>${escapeHtml(f.label)}</label><input data-field="custom" data-key="${escapeAttr(f.key)}" data-idx="${i}" value="${escapeAttr(val)}"></div>`;
+    }).join("");
+    const row = document.createElement("div");
+    row.className = "admin-item-row";
+    row.innerHTML = `
+      <img src="${item.img}" alt="">
+      <div class="mini-field"><label>${escapeHtml(g.fieldLabels.name)}</label><input data-field="name" data-idx="${i}" value="${escapeAttr(item.name)}"></div>
+      <div class="mini-field"><label>${escapeHtml(g.fieldLabels.price)}</label><input data-field="price" data-idx="${i}" value="${escapeAttr(item.price)}"></div>
+      <div class="mini-field"><label>${escapeHtml(g.fieldLabels.demand)}</label>
+        <select data-field="demand" data-idx="${i}">
+          <option value="High" ${item.demand==="High"?"selected":""}>High</option>
+          <option value="Med" ${item.demand==="Med"?"selected":""}>Med</option>
+          <option value="Low" ${item.demand==="Low"?"selected":""}>Low</option>
+          <option value="Unknown" ${item.demand==="Unknown"?"selected":""}>Unknown</option>
+        </select>
+      </div>
+      <div class="mini-field wide"><label>Image URL</label><input data-field="img" data-idx="${i}" value="${escapeAttr(item.img.startsWith('data:')?'':item.img)}" placeholder="optional"></div>
+      ${customInputs}
+      <button class="remove-row" data-idx="${i}" title="Remove item"><i class="fa-solid fa-trash"></i></button>
+    `;
+    itemsWrap.appendChild(row);
+  });
+  itemsWrap.querySelectorAll("input,select").forEach(inp=>{
+    inp.addEventListener("input", ()=>{
+      const idx = Number(inp.dataset.idx);
+      const field = inp.dataset.field;
+      const item = GAMES[currentAdminGameIdx].values[idx];
+      if(field === "custom"){
+        item.custom = item.custom || {};
+        item.custom[inp.dataset.key] = inp.value;
+      } else if(field === "img"){
+        item.img = inp.value.trim() ? inp.value.trim() : genImg(item.name);
+      } else {
+        item[field] = inp.value;
+        if(field === "name"){
+          const imgInput = inp.closest(".admin-item-row").querySelector('[data-field="img"]');
+          if(imgInput && !imgInput.value.trim()) item.img = genImg(item.name);
+        }
+      }
+      saveToStorage();
+      renderHome();
+    });
+  });
+  itemsWrap.querySelectorAll(".remove-row").forEach(btn=>{
+    btn.addEventListener("click", ()=>{
+      GAMES[currentAdminGameIdx].values.splice(Number(btn.dataset.idx),1);
+      saveToStorage(); renderAdmin(); renderHome(); showToast("Item removed");
+    });
+  });
+}
+
+/* ---- add new game ---- */
+document.getElementById("toggle-add-game").addEventListener("click", ()=>{
+  const box = document.getElementById("add-game-box");
+  box.style.display = box.style.display === "none" ? "flex" : "none";
+});
+document.getElementById("create-game-btn").addEventListener("click", ()=>{
+  const name = document.getElementById("new-game-name").value.trim();
+  const icon = document.getElementById("new-game-icon").value.trim() || "fa-solid fa-gamepad";
+  const slugInput = document.getElementById("new-game-slug").value.trim();
+  if(!name){ showToast("Give the new game a name first"); return; }
+  const slug = uniqueSlug(slugify(slugInput || name));
+  GAMES.push({ id: Date.now(), slug, name, icon, image: "", footerText: "", customFields: [], fieldLabels: defaultFieldLabels(), values: [] });
+  currentAdminGameIdx = GAMES.length - 1;
+  document.getElementById("new-game-name").value = "";
+  document.getElementById("new-game-icon").value = "";
+  document.getElementById("new-game-slug").value = "";
+  document.getElementById("add-game-box").style.display = "none";
+  saveToStorage(); renderAdmin(); renderHome();
+  showToast(`"${name}" created — view it at #/${slug}`);
+});
+
+/* ============ AI-POWERED FETCH (OpenRouter) ============ */
+const KEY_STORAGE = "ledger_openrouter_key";
+const MODEL_STORAGE = "ledger_openrouter_model";
+function getApiKey(){ try{ return localStorage.getItem(KEY_STORAGE) || ""; }catch(e){ return ""; } }
+function setApiKey(key){ try{ localStorage.setItem(KEY_STORAGE, key); }catch(e){ /* ignore */ } }
+function getModel(){ try{ return localStorage.getItem(MODEL_STORAGE) || "openrouter/free"; }catch(e){ return "openrouter/free"; } }
+function setModel(m){ try{ localStorage.setItem(MODEL_STORAGE, m || "openrouter/free"); }catch(e){ /* ignore */ } }
+let pendingImage = null; // { dataUrl, name, mime }
+
+function showFetchError(msg){
+  const el = document.getElementById("fetch-error");
+  if(!el) return;
+  if(!msg){ el.style.display = "none"; el.textContent = ""; return; }
+  el.style.display = "block";
+  el.innerHTML = `<i class="fa-solid fa-triangle-exclamation"></i> ${escapeHtml(msg)}`;
+}
+function sleep(ms){ return new Promise(r=>setTimeout(r, ms)); }
+
+/* Fetch readable page text through a free, keyless reader service (avoids CORS/blocking on the raw wiki page).
+   No hard truncation to a small size — long pages are chunked later so nothing gets silently dropped. */
+async function fetchPageText(url){
+  const readerUrl = "https://r.jina.ai/" + url;
+  const res = await fetch(readerUrl);
+  if(!res.ok) throw new Error(`Couldn't read that page (reader responded ${res.status}). Double-check the URL.`);
+  const text = await res.text();
+  if(!text || text.trim().length < 50) throw new Error("That page came back empty — check the URL is a real, public wiki article.");
+  return text.slice(0, 60000);
+}
+
+/* Split long page text into overlapping chunks so large tables get fully processed
+   instead of the tail being cut off and silently ignored. */
+function chunkText(text, chunkSize, overlap){
+  chunkSize = chunkSize || 6000;
+  overlap = overlap || 300;
+  const chunks = [];
+  let i = 0;
+  while(i < text.length){
+    chunks.push(text.slice(i, i + chunkSize));
+    if(i + chunkSize >= text.length) break;
+    i += chunkSize - overlap;
+  }
+  return chunks;
+}
+
+async function callOpenRouter(apiKey, model, messagesOrPrompt, opts){
+  opts = opts || {};
+  const messages = typeof messagesOrPrompt === "string"
+    ? [{ role: "user", content: messagesOrPrompt }]
+    : messagesOrPrompt;
+  // Optional hard timeout: lets callers abort a hung request instead of blocking forever
+  // (this is what let a single slow batch freeze the whole "find images" run).
+  const controller = new AbortController();
+  let timer = null;
+  if(opts.timeoutMs) timer = setTimeout(()=>controller.abort(), opts.timeoutMs);
+  let res;
+  try{
+    res = await fetch("https://openrouter.ai/api/v1/chat/completions", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": "Bearer " + apiKey,
+        "HTTP-Referer": (window.location.origin && window.location.origin !== "null") ? window.location.origin : rootUrl(),
+        "X-Title": "Ledger Trading Value Hub"
+      },
+      body: JSON.stringify({ model: model || "openrouter/free", messages, temperature: 0 }),
+      signal: controller.signal
+    });
+  }catch(e){
+    if(e.name === "AbortError") throw new Error("TIMEOUT");
+    throw e;
+  }finally{
+    if(timer) clearTimeout(timer);
+  }
+  if(!res.ok){
+    let detail = "";
+    try{ const errBody = await res.json(); detail = errBody?.error?.message || ""; }catch(_e){}
+    throw new Error(`OpenRouter responded with ${res.status}${detail ? ": " + detail : ""}`);
+  }
+  const data = await res.json();
+  const content = data?.choices?.[0]?.message?.content;
+  if(!content) throw new Error("OpenRouter returned no content — the model may be rate-limited or unavailable right now, try again or pick a different model slug.");
+  return content;
+}
+
+/* Parse a JSON array out of a raw model response, tolerating stray text/fences around it. */
+function parseItemsJson(rawText){
+  const cleaned = rawText.replace(/```json|```/g, "").trim();
+  const jsonMatch = cleaned.match(/\[[\s\S]*\]/);
+  if(!jsonMatch && !cleaned) throw new Error("The AI didn't return any readable text — try again or a different model slug.");
+  const parsed = JSON.parse(jsonMatch ? jsonMatch[0] : cleaned);
+  if(!Array.isArray(parsed)) throw new Error("The AI's response wasn't a JSON array as instructed — try again.");
+  return parsed;
+}
+
+/* Guard against hallucination: an item only counts if its name is actually
+   traceable in the source page text (normalized, word-level match). */
+function normalizeForMatch(s){
+  return String(s).toLowerCase().replace(/[^a-z0-9 ]/g, " ").replace(/\s+/g, " ").trim();
+}
+function isGroundedInText(name, pageText){
+  const n = normalizeForMatch(name);
+  const t = normalizeForMatch(pageText);
+  if(!n) return false;
+  if(t.includes(n)) return true;
+  const words = n.split(" ").filter(w=>w.length > 2);
+  if(words.length === 0) return t.includes(n);
+  return words.every(w=>t.includes(w));
+}
+
+function buildTextChunkPrompt(gameName, chunk, customInstruction){
+  return `You are extracting data for a community trading-value database for the Roblox game "${gameName}". You must be strictly literal and ground every answer in the PAGE TEXT chunk below — this is one segment of a larger page, so only report on what's in THIS segment. Follow these rules exactly, with no exceptions:
+1. ONLY list an item if its name is explicitly written in the PAGE TEXT below. Never add an item from your own outside knowledge of this game, even if you are confident it exists.
+2. Do NOT invent or estimate a numeric price. If the text does not state a trade value or price for an item, set "price" to exactly "N/A".
+3. Do NOT invent or guess a demand level. Only use "High", "Med", or "Low" if the text explicitly describes that item as rare, common, sought-after, or similar. Otherwise set "demand" to exactly "Unknown".
+4. If this segment names no identifiable tradeable items at all, return an empty array: []. That is a correct and expected answer for segments with no relevant items — do not fill it with guesses to avoid returning nothing.
+5. List every matching item you find in this segment, copied verbatim (same spelling/capitalization) from the text — do not artificially limit the count if the segment genuinely lists many items.${customInstruction}
+6. Output ONLY a raw JSON array — no markdown code fences, no headings, no commentary before or after it. Nothing except the array.
+
+Required shape for each item:
+{"name": "exact string copied from the text", "price": "exact value from the text, or N/A", "demand": "High" | "Med" | "Low" | "Unknown"}
+
+PAGE TEXT SEGMENT (this is the only source of truth — nothing outside of it is allowed):
+"""
+${chunk}
+"""`;
+}
+
+function buildImagePrompt(gameName, customInstruction, useOnline){
+  return `You are extracting data for a community trading-value database for the Roblox game "${gameName}". You are given an image (a screenshot or photo) that shows in-game items, a value list, or similar. Follow these rules exactly:
+1. ONLY list items that are visibly identifiable in the image itself — icons, names, or labels you can actually see. Never add an item purely from your own outside knowledge of this game that isn't shown in the image.
+2. ${useOnline ? "You have live web search available: use it to look up each identified item's real current trade value and demand level online, and use that researched information for \"price\" and \"demand\"." : "Do not invent a price or demand level; if the image itself doesn't show one, set \"price\" to \"N/A\" and \"demand\" to \"Unknown\"."}
+3. If you cannot identify any items in the image, return an empty array: []. That is a correct and expected answer — do not fabricate items to avoid returning nothing.
+4. List every item you can identify — do not artificially cap the count.${customInstruction}
+5. Output ONLY a raw JSON array — no markdown code fences, no headings, no commentary before or after it. Nothing except the array.
+
+Required shape for each item:
+{"name": "item name as seen in the image or found via search", "price": "value like 1.2k, or N/A", "demand": "High" | "Med" | "Low" | "Unknown"}`;
+}
+
+async function analyzeWithAI(){
+  const urlField = document.getElementById("fetch-fandom-url");
+  const url = urlField.value.trim();
+  showFetchError("");
+
+  if(!url && !pendingImage){ showToast("Paste a wiki URL or attach an image first"); return; }
+
+  const apiKey = document.getElementById("fetch-api-key").value.trim();
+  const baseModel = document.getElementById("fetch-model").value.trim() || "openrouter/free";
+  const useOnline = document.getElementById("fetch-online").checked;
+  setApiKey(apiKey);
+  setModel(baseModel);
+  if(!apiKey){
+    showFetchError('No OpenRouter API key entered. Get a free one at openrouter.ai/keys, paste it above, and try again.');
+    return;
+  }
+
+  const btn = document.getElementById("fetch-btn");
+  const originalHtml = btn.innerHTML;
+  btn.disabled = true;
+
+  const g = GAMES[currentAdminGameIdx];
+  const customKeys = (g.customFields||[]).map(f=>f.key);
+  const customInstruction = customKeys.length
+    ? `\nYou may add a "custom" object per item with these keys, but ONLY fill a key in when the source explicitly supports that value; omit the key entirely otherwise: ${customKeys.join(", ")}.`
+    : "";
+
+  try{
+    let textItems = [];
+    let imageItems = [];
+
+    if(url){
+      btn.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> Reading page…`;
+      const pageText = await fetchPageText(url);
+      const chunks = chunkText(pageText);
+      for(let ci = 0; ci < chunks.length; ci++){
+        btn.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> Analyzing part ${ci+1}/${chunks.length}…`;
+        const chunkPrompt = buildTextChunkPrompt(g.name, chunks[ci], customInstruction);
+        const raw = await callOpenRouter(apiKey, baseModel, chunkPrompt);
+        const parsedChunk = parseItemsJson(raw);
+        const groundedChunk = parsedChunk.filter(it => it && it.name && isGroundedInText(it.name, chunks[ci]));
+        textItems.push(...groundedChunk);
+        if(ci < chunks.length - 1) await sleep(300);
+      }
+    }
+
+    if(pendingImage){
+      btn.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> Reading image…`;
+      const imgModel = useOnline && !baseModel.endsWith(":online") ? baseModel + ":online" : baseModel;
+      const imgPrompt = buildImagePrompt(g.name, customInstruction, useOnline);
+      const raw = await callOpenRouter(apiKey, imgModel, [{
+        role: "user",
+        content: [
+          { type: "text", text: imgPrompt },
+          { type: "image_url", image_url: { url: pendingImage.dataUrl } }
+        ]
+      }]);
+      imageItems = parseItemsJson(raw).filter(it => it && it.name);
+    }
+
+    const seen = new Set();
+    const merged = [];
+    [...textItems, ...imageItems].forEach(it=>{
+      const key = normalizeForMatch(it.name);
+      if(!key || seen.has(key)) return;
+      seen.add(key);
+      merged.push(it);
+    });
+
+    if(merged.length === 0){
+      throw new Error(url && !pendingImage
+        ? "No items could be verified against the actual page text (either none were found, or the AI's answers didn't match the real content and were rejected)."
+        : "The AI didn't identify any tradeable items from what you provided.");
+    }
+
+    const capped = merged.slice(0, 150);
+    capped.forEach(it=>{
+      const custom = {};
+      if(it.custom && typeof it.custom === "object"){
+        customKeys.forEach(k=>{ if(it.custom[k]) custom[k] = String(it.custom[k]); });
+      }
+      g.values.push({
+        id: Date.now() + Math.random(),
+        name: it.name,
+        price: it.price || "N/A",
+        demand: ["High","Med","Low","Unknown"].includes(it.demand) ? it.demand : "Unknown",
+        img: genImg(it.name),
+        custom
+      });
+    });
+    saveToStorage(); renderAdmin(); renderHome();
+    const parts = [];
+    if(textItems.length) parts.push(`${textItems.length} verified from the page`);
+    if(imageItems.length) parts.push(`${imageItems.length} from the image`);
+    showToast(`Added ${capped.length} item${capped.length===1?"":"s"} (${parts.join(", ")})`);
+  }catch(err){
+    console.error(err);
+    let msg = err.message || "Unknown error";
+    if(msg.includes("Failed to fetch") || msg.includes("NetworkError")){
+      msg = "Couldn't reach OpenRouter or the page reader — check your connection, or that the URL is correct.";
+    }
+    showFetchError(msg);
+    showToast("AI fetch failed — see the note below the button for details.");
+  }finally{
+    btn.disabled = false;
+    btn.innerHTML = originalHtml;
+  }
+}
+
+
+
+/* ============ UTIL ============ */
+function escapeHtml(str){ return String(str).replace(/[&<>"']/g, m=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[m])); }
+function escapeAttr(str){ return escapeHtml(str); }
+let toastTimer = null;
+function showToast(msg){
+  const t = document.getElementById("toast");
+  t.textContent = msg; t.classList.add("show");
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(()=>t.classList.remove("show"), 2600);
+}
+
+/* ============ ROUTING INIT ============ */
+/* Single domain now — games live at #/slug on the same page instead of a subdomain. */
+function handleHashRoute(){
+  const slug = currentSlug();
+  if(slug){
+    const idx = GAMES.findIndex(g=>g.slug===slug);
+    if(idx >= 0){ openGameDetail(idx); return; }
+  }
+  goTo("home");
+}
+function initRouting(){
+  wireNav();
+  renderHome();
+  window.addEventListener("hashchange", handleHashRoute);
+  handleHashRoute();
+}
+
+/* ============ INIT ============ */
+(async function init(){
+  loadSupabaseCreds();
+  await loadFromStorage();
+  await loadSiteConfig();
+  applySiteConfig();
+  initRouting();
+})();
+</script>
+</body>
+</html>
