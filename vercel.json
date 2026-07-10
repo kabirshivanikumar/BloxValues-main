@@ -1,5 +1,5 @@
 {
   "rewrites": [
-    { "source": "/form/:slug", "destination": "/trade-hub.html" }
+    { "source": "/form/:slug", "destination": "/index.html" }
   ]
 }
