@@ -51,7 +51,18 @@ button{font-family:inherit;cursor:pointer;}
 .domain-pill{font-size:11.5px;color:var(--text-faint);padding:6px 12px;
   border:1px solid var(--glass-border);border-radius:999px;background:var(--glass);}
 
-.screen{display:none;}
+.screen{display:none;position:relative;}
+
+.custom-ad-box{position:fixed;overflow:hidden;z-index:5;border-radius:8px;pointer-events:auto;}
+.ad-draw-layer{position:fixed;inset:0;z-index:80;cursor:crosshair;background:rgba(120,150,255,0.05);}
+.ad-draw-rect{position:absolute;border:2px dashed #7dd3fc;background:rgba(125,211,252,0.15);pointer-events:none;border-radius:4px;}
+.ad-draw-banner{position:fixed;top:16px;left:50%;transform:translateX(-50%);z-index:90;
+  background:linear-gradient(165deg, var(--bg-elev-2), var(--bg-elev));border:1px solid var(--glass-border);
+  padding:12px 16px;border-radius:14px;font-size:13px;color:var(--text);box-shadow:0 20px 50px -15px rgba(0,0,0,0.7);
+  max-width:92vw;}
+.ad-preview-box{border-radius:10px;border:1px dashed var(--glass-border);background:rgba(255,255,255,0.02);
+  min-height:70px;margin-top:8px;padding:6px;display:flex;align-items:center;justify-content:center;overflow:hidden;}
+.ad-preview-box:empty::before{content:"Preview will appear here";font-size:11px;color:var(--text-faint);}
 .screen.active{display:block;animation:fadeUp .35s ease both;}
 @keyframes fadeUp{from{opacity:0;transform:translateY(10px);}to{opacity:1;transform:translateY(0);}}
 
@@ -186,8 +197,8 @@ button{font-family:inherit;cursor:pointer;}
 .vs-badge{font-family:var(--font-heading);font-weight:800;font-size:15px;letter-spacing:0.2px;text-align:center;
   padding:8px 14px;border-radius:999px;background:rgba(255,255,255,0.05);border:1px solid var(--glass-border);
   background-clip:padding-box;transition:.25s;}
-.vs-badge.lead-you{color:var(--you);border-color:rgba(199,201,207,0.5);background:rgba(199,201,207,0.1);}
-.vs-badge.lead-them{color:var(--them);border-color:rgba(207,168,118,0.5);background:rgba(207,168,118,0.1);}
+.vs-badge.lead-you{color:var(--high);border-color:rgba(99,217,154,0.5);background:rgba(99,217,154,0.1);}
+.vs-badge.lead-them{color:var(--low);border-color:rgba(232,115,122,0.5);background:rgba(232,115,122,0.1);}
 .balance-meter{width:100%;height:9px;border-radius:999px;background:rgba(255,255,255,0.08);overflow:hidden;position:relative;}
 .balance-fill{position:absolute;top:0;bottom:0;left:50%;width:0;border-radius:999px;transition:left .35s ease, width .35s ease, background .35s ease;}
 .vs-diff{font-size:11px;color:var(--text-faint);font-weight:600;text-align:center;}
@@ -199,7 +210,21 @@ button{font-family:inherit;cursor:pointer;}
 
 .ad-slot{border-radius:14px;border:1px dashed var(--glass-border);background:rgba(255,255,255,0.015);
   padding:16px;text-align:center;color:var(--text-faint);font-size:11px;letter-spacing:0.3px;text-transform:uppercase;font-weight:700;min-height:90px;
-  display:flex;align-items:center;justify-content:center;}
+  display:flex;align-items:center;justify-content:center;overflow:hidden;}
+.ad-slot > *{max-width:100%;}
+
+/* ---------- popup / interstitial ads ---------- */
+.ad-popup-overlay{position:fixed;inset:0;background:rgba(6,8,16,0.55);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);
+  display:none;align-items:center;justify-content:center;z-index:200;padding:20px;}
+.ad-popup-overlay.active{display:flex;animation:fadeIn .25s ease both;}
+.ad-popup-box{position:relative;width:100%;max-width:520px;max-height:80vh;overflow:auto;border-radius:18px;padding:18px;
+  background:linear-gradient(165deg, var(--bg-elev-2), var(--bg-elev));border:1px solid var(--glass-border);
+  box-shadow:0 30px 70px -20px rgba(0,0,0,0.7);}
+.ad-popup-close{position:absolute;top:10px;right:10px;width:30px;height:30px;border-radius:50%;border:1px solid var(--glass-border);
+  background:rgba(255,255,255,0.06);color:var(--text-dim);font-size:18px;line-height:1;cursor:pointer;z-index:1;}
+.ad-popup-close:hover{background:rgba(255,255,255,0.12);color:var(--text);}
+#ad-popup-content{margin-top:6px;}
+#ad-popup-content > *{max-width:100%;}
 
 /* ---------- modal ---------- */
 .modal-overlay{position:fixed;inset:0;background:rgba(6,8,16,0.7);backdrop-filter:blur(6px);
@@ -290,6 +315,7 @@ input::placeholder{color:var(--text-faint);}
       <p id="home-sub">Pick a game to browse current values, gauge demand, and run a trade through the calculator before you commit.</p>
     </div>
     <div class="game-grid" id="game-grid"></div>
+    <div class="ad-slot" id="ad-slot-home" style="display:none;margin-top:20px;"></div>
   </section>
 
   <!-- GAME DETAIL -->
@@ -348,7 +374,7 @@ input::placeholder{color:var(--text-faint);}
         </div>
       </div>
 
-      <div class="ad-slot" id="calc-ad-slot">Ad space</div>
+      <div class="ad-slot" id="ad-slot-game" style="display:none;"></div>
 
       <div>
         <div class="list-toolbar">
@@ -388,6 +414,8 @@ input::placeholder{color:var(--text-faint);}
       <div class="admin-side">
         <div class="side-title">Site</div>
         <div id="admin-site-btn" class="side-game"><i class="fa-solid fa-paintbrush"></i> Site &amp; Branding</div>
+        <div id="admin-ads-btn" class="side-game"><i class="fa-solid fa-rectangle-ad"></i> Ads</div>
+        <div id="admin-forms-btn" class="side-game"><i class="fa-solid fa-list-check"></i> Forms</div>
         <div class="side-title">Games</div>
         <div id="admin-game-list"></div>
         <div class="side-title">New game</div>
@@ -402,6 +430,24 @@ input::placeholder{color:var(--text-faint);}
       <div class="admin-main" id="admin-main"></div>
     </div>
   </section>
+
+  <!-- PUBLIC FORM FILL -->
+  <section class="screen" id="screen-form-fill">
+    <div class="hero" style="margin-bottom:20px;">
+      <div class="eyebrow" id="form-fill-eyebrow">Form</div>
+      <h1 id="form-fill-title" style="font-size:28px;">Form</h1>
+      <p id="form-fill-desc"></p>
+    </div>
+    <div id="form-fill-body" style="max-width:640px;display:flex;flex-direction:column;gap:18px;"></div>
+    <div id="form-fill-thanks" style="display:none;max-width:640px;text-align:center;padding:40px 20px;">
+      <i class="fa-solid fa-circle-check" style="font-size:40px;color:var(--high);margin-bottom:14px;"></i>
+      <h2 style="margin:0 0 8px;">Thanks — response recorded</h2>
+      <p style="color:var(--text-dim);margin:0;">You can close this tab now.</p>
+    </div>
+    <div id="form-fill-missing" style="display:none;max-width:640px;text-align:center;padding:40px 20px;color:var(--text-dim);">
+      This form doesn't exist or was removed.
+    </div>
+  </section>
 </div>
 
 <div class="modal-overlay" id="modal-overlay">
@@ -412,17 +458,18 @@ input::placeholder{color:var(--text-faint);}
   </div>
 </div>
 
+<div class="ad-popup-overlay" id="ad-popup-overlay">
+  <div class="ad-popup-box">
+    <button class="ad-popup-close" id="ad-popup-close">&times;</button>
+    <div id="ad-popup-content"></div>
+  </div>
+</div>
+
 <div class="toast" id="toast"></div>
 
 <script>
 /* ============ CONFIG / ROUTING ============ */
 
-function rootUrl(){ return window.location.origin + window.location.pathname; }
-function gameUrl(g){ return `${rootUrl()}#/${g.slug}`; }
-function currentSlug(){
-  const m = /^#\/(.+)$/.exec(window.location.hash);
-  return m ? decodeURIComponent(m[1]) : null;
-}
 function slugify(str){ return (str||"").toLowerCase().replace(/[^a-z0-9]+/g,"") || "game"; }
 function uniqueSlug(base){
   let s = base, i = 2;
@@ -486,7 +533,9 @@ const STORAGE_KEY = "ledger_trade_hub_v2";
 let GAMES = [];
 let currentGameIdx = null;
 let currentAdminGameIdx = 0;
-let adminMode = "game"; // "game" | "site"
+let adminMode = "game"; // "game" | "site" | "ads" | "forms" | "form-edit"
+let currentAdminFormIdx = 0;
+let formAdminTab = "edit"; // "edit" | "responses"
 let calcSides = { you: [], them: [] };
 let modalTarget = null;
 let listFilter = { search:"", demand:"all", sort:"name" };
@@ -519,17 +568,40 @@ function defaultSiteConfig(){
     calcSubtitle: "Add items to each side to compare value and demand before you commit.",
     calcYouLabel: "You",
     calcThemLabel: "Them",
-    showAdSlot: true
+    ads: [] // each: {id,name,type:"embed"|"popup",code,enabled,placements:{home,game},popupChance,popupDelay}
   };
 }
 /* ============ SUPABASE (shared backend, so admin edits show up for every visitor) ============ */
+/* These two values are baked into the page on purpose so EVERY visitor's browser connects to
+   the same database automatically — no per-browser setup required. The anon key is meant to be
+   public (it can only do what your Row Level Security policies in Supabase allow), so it's safe
+   to ship inside this file. Fill these in once with your real project's values (Project Settings
+   → API in Supabase) and re-upload the file — that's what makes admin edits show up for real
+   visitors instead of only in the browser that made the change.
+   Leave them blank ("") to fall back to local-browser-only storage (nothing will sync). */
+const DEFAULT_SUPABASE_URL = "https://ftnyzhkaeloimhyspnxq.supabase.co";
+const DEFAULT_SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZ0bnl6aGthZWxvaW1oeXNwbnhxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODMzODgxOTAsImV4cCI6MjA5ODk2NDE5MH0.J4M4ryNmaZO3IJI3sWW72NR7sD17FMUaUrqhmOfcs3g";
+
+/* This file is the public site itself (bloxvalues.xyz), so share links can just use
+   window.location.origin — but we keep a named constant for consistency with admin.html
+   and in case this ever needs to point elsewhere. */
+const PUBLIC_SITE_URL = "https://bloxvalues.xyz/";
+
 const SUPABASE_CREDS_KEY = "ledger_supabase_creds_v1";
-let SUPABASE_URL = "", SUPABASE_ANON_KEY = "", sbClient = null;
+let SUPABASE_URL = DEFAULT_SUPABASE_URL, SUPABASE_ANON_KEY = DEFAULT_SUPABASE_ANON_KEY, sbClient = null;
 function loadSupabaseCreds(){
+  // A locally-saved override (e.g. for local testing) takes priority over the baked-in defaults.
   try{
     const raw = localStorage.getItem(SUPABASE_CREDS_KEY);
-    if(raw){ const c = JSON.parse(raw); SUPABASE_URL = c.url||""; SUPABASE_ANON_KEY = c.key||""; }
+    if(raw){
+      const c = JSON.parse(raw);
+      if(c.url) SUPABASE_URL = c.url;
+      if(c.key) SUPABASE_ANON_KEY = c.key;
+      return;
+    }
   }catch(e){ console.warn("supabase creds read failed", e); }
+  SUPABASE_URL = DEFAULT_SUPABASE_URL;
+  SUPABASE_ANON_KEY = DEFAULT_SUPABASE_ANON_KEY;
 }
 function saveSupabaseCreds(url, key){
   SUPABASE_URL = url.trim(); SUPABASE_ANON_KEY = key.trim(); sbClient = null;
@@ -551,15 +623,26 @@ async function kvGet(key){
   if(!sb) return null;
   try{
     const { data, error } = await sb.from("kv_store").select("value").eq("key", key).maybeSingle();
-    if(error){ console.warn("supabase read error", error); return null; }
+    if(error){
+      const msg = error.message || JSON.stringify(error);
+      console.warn("supabase read error:", msg, "(code: "+(error.code||"?")+")");
+      if(typeof showToast === "function") showToast("DB read failed for \""+key+"\": " + msg);
+      return null;
+    }
     return data ? data.value : null;
   }catch(e){ console.warn("supabase read failed", e); return null; }
 }
 async function kvSet(key, value){
   const sb = getSupabase();
-  if(!sb) return;
-  try{ await sb.from("kv_store").upsert({ key, value, updated_at: new Date().toISOString() }); }
-  catch(e){ console.warn("supabase write failed", e); }
+  if(!sb) return { ok:false, reason:"not-connected" };
+  try{
+    const { error } = await sb.from("kv_store").upsert({ key, value, updated_at: new Date().toISOString() });
+    if(error){ console.warn("supabase write error", error); return { ok:false, reason:error.message }; }
+    return { ok:true };
+  }catch(e){
+    console.warn("supabase write failed", e);
+    return { ok:false, reason: e.message || "network error" };
+  }
 }
 
 let SITE_CONFIG = defaultSiteConfig();
@@ -576,9 +659,12 @@ async function loadSiteConfig(){
   }catch(e){ console.warn("site config read failed", e); }
   SITE_CONFIG = defaultSiteConfig();
 }
-function saveSiteConfig(){
+async function saveSiteConfig(){
   try{ localStorage.setItem(SITE_STORAGE_KEY, JSON.stringify(SITE_CONFIG)); }catch(e){ console.warn("site config write failed", e); }
-  kvSet("site_config", SITE_CONFIG); // fire-and-forget sync to shared backend, if connected
+  const result = await kvSet("site_config", SITE_CONFIG);
+  if(result && !result.ok && result.reason !== "not-connected"){
+    showToast("Saved locally, but the shared sync failed: " + result.reason);
+  }
 }
 function hexToRgb(hex){
   const m = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex||"");
@@ -620,7 +706,6 @@ function applySiteConfig(){
   const calcSubtitleEl = document.getElementById("calc-subtitle"); if(calcSubtitleEl) calcSubtitleEl.textContent = SITE_CONFIG.calcSubtitle || "";
   const calcYouEl = document.getElementById("calc-you-label"); if(calcYouEl) calcYouEl.textContent = SITE_CONFIG.calcYouLabel || "You";
   const calcThemEl = document.getElementById("calc-them-label"); if(calcThemEl) calcThemEl.textContent = SITE_CONFIG.calcThemLabel || "Them";
-  const adSlotEl = document.getElementById("calc-ad-slot"); if(adSlotEl) adSlotEl.style.display = SITE_CONFIG.showAdSlot === false ? "none" : "flex";
 
   const sortSelectEl = document.getElementById("sort-select");
   if(sortSelectEl && listFilter && !listFilter._userChangedSort){
@@ -655,12 +740,74 @@ async function loadFromStorage(){
   GAMES = buildDefaults();
   saveToStorage();
 }
-function saveToStorage(){
+async function saveToStorage(){
   try{ localStorage.setItem(STORAGE_KEY, JSON.stringify(GAMES)); }catch(e){ console.warn("storage write failed", e); }
-  kvSet("games", GAMES); // fire-and-forget sync to shared backend, if connected
+  const result = await kvSet("games", GAMES);
+  if(result && !result.ok && result.reason !== "not-connected"){
+    showToast("Saved locally, but the shared sync failed: " + result.reason);
+  }
 }
 function resetToDefault(){
   GAMES = buildDefaults(); saveToStorage(); showToast("Reset to default data"); renderHome(); renderAdmin();
+}
+
+/* ============ FORMS ============ */
+let FORMS = [];
+function randomFormId(){ return "frm_" + Math.random().toString(36).slice(2,10); }
+function randomQId(){ return "q_" + Math.random().toString(36).slice(2,8); }
+function slugifyForm(str){ return (str||"").toLowerCase().trim().replace(/[^a-z0-9]+/g,"-").replace(/^-+|-+$/g,"") || "form"; }
+function uniqueFormSlug(base, ignoreForm){
+  let s = slugifyForm(base), i = 2;
+  while(FORMS.some(f=>f!==ignoreForm && f.slug===s)){ s = slugifyForm(base)+"-"+i; i++; }
+  return s;
+}
+async function loadForms(){
+  const remote = await kvGet("forms");
+  if(Array.isArray(remote)){ FORMS = remote; return; }
+  FORMS = [];
+}
+async function saveForms(){
+  const result = await kvSet("forms", FORMS);
+  if(result && !result.ok && result.reason !== "not-connected"){
+    showToast("Saved locally, but the shared sync failed: " + result.reason);
+  }
+}
+async function loadFormResponses(formId){
+  const remote = await kvGet("form_responses_" + formId);
+  return Array.isArray(remote) ? remote : [];
+}
+async function submitFormResponse(formId, answers){
+  const key = "form_responses_" + formId;
+  const existing = await loadFormResponses(formId);
+  existing.push({ id: "r_" + Math.random().toString(36).slice(2,10), submittedAt: new Date().toISOString(), answers });
+  return await kvSet(key, existing);
+}
+function formShareUrl(form){
+  return PUBLIC_SITE_URL.replace(/\/+$/,"") + "/form/" + encodeURIComponent(form.slug || form.id);
+}
+function csvEscape(val){
+  const s = (val==null ? "" : String(val));
+  if(/[",\n]/.test(s)) return '"' + s.replace(/"/g,'""') + '"';
+  return s;
+}
+function exportFormResponsesCsv(form, responses){
+  const headers = ["Submitted at", ...form.questions.map(q=>q.label || "(untitled question)")];
+  const rows = [headers.map(csvEscape).join(",")];
+  responses.forEach(r=>{
+    const row = [new Date(r.submittedAt).toLocaleString()];
+    form.questions.forEach(q=>{
+      const v = r.answers ? r.answers[q.id] : undefined;
+      row.push(Array.isArray(v) ? v.join("; ") : (v==null ? "" : v));
+    });
+    rows.push(row.map(csvEscape).join(","));
+  });
+  const blob = new Blob([rows.join("\r\n")], { type: "text/csv;charset=utf-8;" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = (form.title || "form").replace(/[^a-z0-9]+/gi,"_").toLowerCase() + "_responses.csv";
+  document.body.appendChild(a); a.click(); a.remove();
+  URL.revokeObjectURL(url);
 }
 
 /* ============ NAV ============ */
@@ -668,6 +815,11 @@ function goTo(screen){
   document.querySelectorAll(".screen").forEach(s=>s.classList.remove("active"));
   document.getElementById("screen-"+screen).classList.add("active");
   document.querySelectorAll("#topbar-nav .nav-btn").forEach(b=>b.classList.toggle("active", b.dataset.nav===screen));
+  // Custom ad boxes live on <body>, not inside their screen, so they can reach the
+  // viewport's side margins — clear them out whenever we leave home/game entirely.
+  if(screen !== "home" && screen !== "game"){
+    document.querySelectorAll(".custom-ad-box").forEach(el=>el.remove());
+  }
 }
 function wireNav(){
   document.querySelectorAll("#topbar-nav [data-nav]").forEach(el=>{
@@ -677,6 +829,301 @@ function wireNav(){
       if(target==="admin") renderAdmin();
     });
   });
+  document.getElementById("ad-popup-close").addEventListener("click", closePopupAd);
+}
+
+/* ============ ADS ============ */
+function randomAdId(){ return "ad_" + Math.random().toString(36).slice(2,10); }
+function adsList(){ return Array.isArray(SITE_CONFIG.ads) ? SITE_CONFIG.ads : []; }
+
+// Renders ad markup into a container. Plain links/images/HTML go in directly, but
+// anything containing a <script> tag is rendered inside a sandboxed iframe instead —
+// scripts inserted via innerHTML silently never run, which is the #1 reason a pasted
+// ad network embed looks "dead" even though the code itself is correct.
+function injectAdCode(container, code, minHeight){
+  container.innerHTML = "";
+  if(!code || !code.trim()) return;
+  if(/<script[\s>]/i.test(code)){
+    const frame = document.createElement("iframe");
+    frame.style.cssText = `width:100%;height:100%;min-height:${minHeight||90}px;border:0;display:block;background:transparent;`;
+    frame.setAttribute("sandbox","allow-scripts allow-popups allow-popups-to-escape-sandbox allow-same-origin allow-forms");
+    frame.srcdoc = `<!doctype html><html><head><style>html,body{margin:0;padding:0;background:transparent;overflow:hidden;}</style></head><body>${code}</body></html>`;
+    container.appendChild(frame);
+  }else{
+    const holder = document.createElement("div");
+    holder.style.width = "100%";
+    holder.innerHTML = code;
+    container.appendChild(holder);
+  }
+}
+
+// Fills the static in-page ad slot for a placement ("home" | "game") with every
+// enabled "embed" ad targeting it. Hides the slot entirely if nothing matches.
+function renderAds(placement){
+  const slot = document.getElementById("ad-slot-" + placement);
+  if(!slot) return;
+  const matches = adsList().filter(ad => ad.enabled && ad.type === "embed" && ad.placements && ad.placements[placement]);
+  if(matches.length === 0){ slot.style.display = "none"; slot.innerHTML = ""; return; }
+  slot.style.display = "flex";
+  slot.style.flexDirection = "column";
+  slot.style.gap = "14px";
+  slot.innerHTML = "";
+  matches.forEach(ad=>{
+    const holder = document.createElement("div");
+    holder.style.width = "100%";
+    injectAdCode(holder, ad.code, 90);
+    slot.appendChild(holder);
+  });
+}
+
+// Positions every enabled "custom" (hand-drawn) ad box inside the given screen,
+// using the percentage rectangle captured when it was drawn.
+// Custom ad boxes are fixed to the viewport (not the centered .app column) so they can
+// sit in the open side margins on wide screens, not just inside the main content width.
+function renderCustomAds(screen){
+  document.querySelectorAll(".custom-ad-box").forEach(el=>el.remove());
+  adsList().filter(ad => ad.enabled && ad.type === "custom" && ad.screen === screen && ad.rect).forEach(ad=>{
+    const box = document.createElement("div");
+    box.className = "custom-ad-box";
+    box.style.left = ad.rect.x + "%";
+    box.style.top = ad.rect.y + "%";
+    box.style.width = ad.rect.w + "%";
+    box.style.height = ad.rect.h + "%";
+    injectAdCode(box, ad.code, 40);
+    document.body.appendChild(box);
+  });
+}
+
+// Rolls the dice for every enabled "popup" (blur interstitial) ad targeting this
+// placement and shows at most one, after its configured delay. Each ad is capped
+// to once per browser tab session so visitors aren't hit with it on every click.
+function maybeShowPopupAd(placement){
+  const candidates = adsList().filter(ad =>
+    ad.enabled && ad.type === "popup" && ad.placements && ad.placements[placement] &&
+    !sessionStorage.getItem("ad_shown_" + ad.id)
+  );
+  if(candidates.length === 0) return;
+  const chosen = candidates[Math.floor(Math.random() * candidates.length)];
+  const chance = Math.max(0, Math.min(100, Number(chosen.popupChance) || 0));
+  if(Math.random() * 100 >= chance) return;
+  const delayMs = Math.max(0, Number(chosen.popupDelay) || 0) * 1000;
+  clearTimeout(window._adPopupTimer);
+  window._adPopupTimer = setTimeout(()=> showPopupAd(chosen), delayMs);
+}
+function showPopupAd(ad){
+  injectAdCode(document.getElementById("ad-popup-content"), ad.code, 200);
+  document.getElementById("ad-popup-overlay").classList.add("active");
+  if(ad.id) try{ sessionStorage.setItem("ad_shown_" + ad.id, "1"); }catch(e){}
+}
+function closePopupAd(){
+  document.getElementById("ad-popup-overlay").classList.remove("active");
+  document.getElementById("ad-popup-content").innerHTML = "";
+}
+
+/* ============ CUSTOM AD SPACE (mouse-drawn) ============ */
+let _adDraw = null;
+function _adDrawEscHandler(e){ if(e.key === "Escape") cancelDrawCustomAd(); }
+function startDrawCustomAd(screen, existingAd){
+  if(screen === "game"){
+    if(GAMES.length === 0){ showToast("Create a game first"); return; }
+    openGameDetail(currentGameIdx >= 0 ? currentGameIdx : 0);
+  }else{
+    goTo("home"); renderHome();
+  }
+  // The draw layer covers the full viewport (not just the centered content column) so
+  // the open side margins on wide screens are drawable too, exactly like the real
+  // fixed-position ad box will render once saved.
+  const layer = document.createElement("div");
+  layer.className = "ad-draw-layer";
+  const rectEl = document.createElement("div");
+  rectEl.className = "ad-draw-rect";
+  rectEl.style.display = "none";
+  layer.appendChild(rectEl);
+  document.body.appendChild(layer);
+
+  const banner = document.createElement("div");
+  banner.className = "ad-draw-banner";
+  banner.innerHTML = `<i class="fa-solid fa-crosshairs"></i> Click and drag anywhere — including the side margins — to draw the ad area &nbsp; <button class="btn" id="ad-draw-cancel" style="padding:4px 10px;">Cancel (Esc)</button>`;
+  document.body.appendChild(banner);
+
+  _adDraw = { screen, existingAd, layer, banner, rectEl, dragging:false, sx:0, sy:0 };
+
+  const onDown = (e)=>{
+    _adDraw.dragging = true;
+    _adDraw.sx = e.clientX;
+    _adDraw.sy = e.clientY;
+    rectEl.style.left = _adDraw.sx + "px"; rectEl.style.top = _adDraw.sy + "px";
+    rectEl.style.width = "0px"; rectEl.style.height = "0px";
+    rectEl.style.display = "block";
+  };
+  const onMove = (e)=>{
+    if(!_adDraw || !_adDraw.dragging) return;
+    const cx = e.clientX, cy = e.clientY;
+    const x = Math.min(cx, _adDraw.sx), y = Math.min(cy, _adDraw.sy);
+    const w = Math.abs(cx - _adDraw.sx), h = Math.abs(cy - _adDraw.sy);
+    rectEl.style.left = x+"px"; rectEl.style.top = y+"px"; rectEl.style.width = w+"px"; rectEl.style.height = h+"px";
+  };
+  const onUp = ()=>{
+    if(!_adDraw || !_adDraw.dragging) return;
+    _adDraw.dragging = false;
+    const left = parseFloat(rectEl.style.left)||0, top = parseFloat(rectEl.style.top)||0;
+    const w = parseFloat(rectEl.style.width)||0, h = parseFloat(rectEl.style.height)||0;
+    if(w < 30 || h < 30){ rectEl.style.display = "none"; showToast("Draw a bigger box for the ad area"); return; }
+    finishDrawCustomAd(screen, { x:(left/window.innerWidth)*100, y:(top/window.innerHeight)*100, w:(w/window.innerWidth)*100, h:(h/window.innerHeight)*100 });
+  };
+  layer.addEventListener("mousedown", onDown);
+  window.addEventListener("mousemove", onMove);
+  window.addEventListener("mouseup", onUp);
+  _adDraw._onMove = onMove; _adDraw._onUp = onUp;
+
+  document.getElementById("ad-draw-cancel").addEventListener("click", cancelDrawCustomAd);
+  document.addEventListener("keydown", _adDrawEscHandler);
+}
+function _teardownDrawListeners(){
+  if(!_adDraw) return;
+  window.removeEventListener("mousemove", _adDraw._onMove);
+  window.removeEventListener("mouseup", _adDraw._onUp);
+  document.removeEventListener("keydown", _adDrawEscHandler);
+}
+function cancelDrawCustomAd(){
+  if(!_adDraw) return;
+  _teardownDrawListeners();
+  _adDraw.layer.remove(); _adDraw.banner.remove();
+  _adDraw = null;
+  goTo("admin"); adminMode = "ads"; renderAdmin();
+}
+function finishDrawCustomAd(screen, rectPct){
+  const draw = _adDraw;
+  _teardownDrawListeners();
+  draw.layer.remove();
+
+  // Editing an existing custom ad's position — just update it and skip the code form.
+  if(draw.existingAd){
+    draw.existingAd.rect = rectPct;
+    draw.existingAd.screen = screen;
+    saveSiteConfig();
+    draw.banner.remove(); _adDraw = null;
+    renderCustomAds(screen);
+    goTo("admin"); adminMode = "ads"; renderAdmin();
+    showToast("Ad position updated");
+    return;
+  }
+
+  draw.banner.innerHTML = `
+    <div style="display:flex;flex-direction:column;gap:8px;min-width:260px;">
+      <div style="font-weight:700;"><i class="fa-solid fa-crosshairs"></i> New custom ad space</div>
+      <input id="ad-draw-name" placeholder="Name (optional)" style="padding:8px 10px;border-radius:8px;border:1px solid var(--glass-border);background:rgba(255,255,255,0.04);color:var(--text);">
+      <textarea id="ad-draw-code" rows="3" placeholder="Paste a link, image, or embed/script code" style="padding:8px 10px;border-radius:8px;border:1px solid var(--glass-border);background:rgba(255,255,255,0.04);color:var(--text);resize:vertical;"></textarea>
+      <div style="display:flex;gap:8px;justify-content:flex-end;">
+        <button class="btn" id="ad-draw-cancel2">Cancel</button>
+        <button class="btn btn-primary" id="ad-draw-save">Save ad space</button>
+      </div>
+    </div>
+  `;
+  document.getElementById("ad-draw-cancel2").addEventListener("click", ()=>{
+    draw.banner.remove(); _adDraw = null; goTo("admin"); adminMode = "ads"; renderAdmin();
+  });
+  document.getElementById("ad-draw-save").addEventListener("click", ()=>{
+    const name = document.getElementById("ad-draw-name").value.trim() || "Custom ad space";
+    const code = document.getElementById("ad-draw-code").value;
+    if(!Array.isArray(SITE_CONFIG.ads)) SITE_CONFIG.ads = [];
+    SITE_CONFIG.ads.push({ id: randomAdId(), name, type:"custom", code, enabled:true, screen, rect: rectPct });
+    saveSiteConfig();
+    draw.banner.remove(); _adDraw = null;
+    renderCustomAds(screen);
+    goTo("admin"); adminMode = "ads"; renderAdmin();
+    showToast("Custom ad space added");
+  });
+}
+function redrawCustomAd(adId){
+  const ad = adsList().find(a=>a.id===adId);
+  if(!ad) return;
+  startDrawCustomAd(ad.screen, ad);
+}
+
+/* ============ PUBLIC FORM FILL ============ */
+function getUrlFormId(){
+  try{
+    // Pretty path form: bloxvalues.xyz/form/<slug-or-id>
+    const pathMatch = window.location.pathname.match(/\/form\/([^\/?#]+)\/?$/);
+    if(pathMatch) return decodeURIComponent(pathMatch[1]);
+    // Legacy query-param form: bloxvalues.xyz/?form=<id>
+    return new URLSearchParams(window.location.search).get("form");
+  }catch(e){ return null; }
+}
+function renderFormFill(formId){
+  const form = FORMS.find(f=>f.slug===formId) || FORMS.find(f=>f.id===formId);
+  document.getElementById("form-fill-thanks").style.display = "none";
+  document.getElementById("form-fill-missing").style.display = "none";
+  document.getElementById("form-fill-body").style.display = "flex";
+  if(!form){
+    document.getElementById("form-fill-missing").style.display = "block";
+    document.getElementById("form-fill-body").style.display = "none";
+    document.getElementById("form-fill-title").textContent = "Form";
+    document.getElementById("form-fill-desc").textContent = "";
+    return;
+  }
+  document.getElementById("form-fill-title").textContent = form.title || "Untitled form";
+  document.getElementById("form-fill-desc").textContent = form.description || "";
+  const body = document.getElementById("form-fill-body");
+  body.innerHTML = "";
+  (form.questions||[]).forEach(q=>{
+    const wrap = document.createElement("div");
+    wrap.className = "field";
+    let inputHtml = "";
+    if(q.type === "paragraph"){
+      inputHtml = `<textarea class="ff-input" data-qid="${q.id}" rows="4" style="width:100%;resize:vertical;padding:10px 12px;border-radius:10px;border:1px solid var(--glass-border);background:rgba(255,255,255,0.03);color:var(--text);"></textarea>`;
+    }else if(q.type === "choice"){
+      inputHtml = (q.options||[]).map((opt,i)=>`
+        <label style="display:flex;align-items:center;gap:8px;font-size:14px;color:var(--text-dim);cursor:pointer;padding:6px 0;">
+          <input type="radio" name="ff-${q.id}" class="ff-input" data-qid="${q.id}" value="${escapeAttr(opt)}" style="width:16px;height:16px;"> ${escapeHtml(opt)}
+        </label>`).join("");
+    }else if(q.type === "checkbox"){
+      inputHtml = (q.options||[]).map((opt,i)=>`
+        <label style="display:flex;align-items:center;gap:8px;font-size:14px;color:var(--text-dim);cursor:pointer;padding:6px 0;">
+          <input type="checkbox" class="ff-input ff-checkbox" data-qid="${q.id}" value="${escapeAttr(opt)}" style="width:16px;height:16px;"> ${escapeHtml(opt)}
+        </label>`).join("");
+    }else{
+      inputHtml = `<input class="ff-input" data-qid="${q.id}" type="text" style="width:100%;padding:10px 12px;border-radius:10px;border:1px solid var(--glass-border);background:rgba(255,255,255,0.03);color:var(--text);">`;
+    }
+    wrap.innerHTML = `<label style="font-size:14px;color:var(--text);font-weight:600;">${escapeHtml(q.label||"")}${q.required?' <span style="color:var(--low);">*</span>':''}</label>${inputHtml}`;
+    body.appendChild(wrap);
+  });
+  const submitBtn = document.createElement("button");
+  submitBtn.className = "btn btn-primary";
+  submitBtn.style.cssText = "justify-content:center;margin-top:6px;";
+  submitBtn.innerHTML = '<i class="fa-solid fa-paper-plane"></i> Submit';
+  submitBtn.addEventListener("click", async ()=>{
+    const answers = {};
+    let missingRequired = false;
+    (form.questions||[]).forEach(q=>{
+      if(q.type === "checkbox"){
+        const vals = Array.from(body.querySelectorAll(`.ff-checkbox[data-qid="${q.id}"]:checked`)).map(el=>el.value);
+        answers[q.id] = vals;
+        if(q.required && vals.length===0) missingRequired = true;
+      }else if(q.type === "choice"){
+        const sel = body.querySelector(`.ff-input[data-qid="${q.id}"]:checked`);
+        answers[q.id] = sel ? sel.value : "";
+        if(q.required && !sel) missingRequired = true;
+      }else{
+        const el = body.querySelector(`.ff-input[data-qid="${q.id}"]`);
+        const v = el ? el.value.trim() : "";
+        answers[q.id] = v;
+        if(q.required && !v) missingRequired = true;
+      }
+    });
+    if(missingRequired){ showToast("Please fill in all required questions"); return; }
+    submitBtn.disabled = true; submitBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Submitting…';
+    const result = await submitFormResponse(form.id, answers);
+    if(result && result.ok === false){
+      submitBtn.disabled = false; submitBtn.innerHTML = '<i class="fa-solid fa-paper-plane"></i> Submit';
+      showToast("Couldn't submit: " + (result.reason || "unknown error"));
+      return;
+    }
+    body.style.display = "none";
+    document.getElementById("form-fill-thanks").style.display = "block";
+  });
+  body.appendChild(submitBtn);
 }
 
 /* ============ HOME ============ */
@@ -686,7 +1133,6 @@ function renderHome(){
   GAMES.forEach((g, idx)=>{
     const card = document.createElement("a");
     card.className = "game-card";
-    card.href = gameUrl(g);
     const giInner = g.image ? `<img src="${escapeAttr(g.image)}" alt="">` : `<i class="${g.icon || 'fa-solid fa-gamepad'}"></i>`;
     const footerHtml = g.footerText ? `<div class="gc-footer">${escapeHtml(g.footerText)}</div>` : "";
     card.innerHTML = `
@@ -695,16 +1141,18 @@ function renderHome(){
       <div class="gc-body">
         <h3>${escapeHtml(g.name)}</h3>
         <div class="count">${g.values.length} items tracked</div>
-        <div class="sub-url">${rootUrl()}#/${g.slug}</div>
         ${footerHtml}
       </div>
     `;
     card.addEventListener("click", (e)=>{
       e.preventDefault();
-      window.location.hash = "/"+g.slug;
+      openGameDetail(idx);
     });
     grid.appendChild(card);
   });
+  renderAds("home");
+  renderCustomAds("home");
+  maybeShowPopupAd("home");
 }
 
 /* ============ GAME DETAIL ============ */
@@ -713,7 +1161,7 @@ function openGameDetail(idx){
   const g = GAMES[idx];
   if(!g.fieldLabels) g.fieldLabels = defaultFieldLabels();
   document.getElementById("game-title").textContent = g.name;
-  document.getElementById("game-sub").textContent = `${rootUrl()}#/${g.slug}`;
+  document.getElementById("game-sub").textContent = `${g.values.length} item${g.values.length===1?"":"s"} tracked`;
   listFilter = { search:"", demand:"all", sort: SITE_CONFIG.defaultSort || "name" };
   document.getElementById("item-search").value = "";
   const sortSelect = document.getElementById("sort-select");
@@ -725,10 +1173,13 @@ function openGameDetail(idx){
   sortSelect.value = listFilter.sort;
   document.querySelectorAll("#demand-chips .chip").forEach(c=>c.classList.toggle("active", c.dataset.demand==="all"));
   const back = document.getElementById("back-to-hub");
-  back.href = rootUrl();
+  back.href = "#";
   renderValueList();
   resetTradeCalc();
   goTo("game");
+  renderAds("game");
+  renderCustomAds("game");
+  maybeShowPopupAd("game");
 }
 function getFilteredSortedValues(){
   const g = GAMES[currentGameIdx];
@@ -782,7 +1233,7 @@ document.getElementById("demand-chips").addEventListener("click", (e)=>{
 });
 document.getElementById("back-to-hub").addEventListener("click", (e)=>{
   e.preventDefault();
-  window.location.hash = "";
+  goTo("home");
 });
 
 /* ============ TRADE CALCULATOR ============ */
@@ -844,13 +1295,13 @@ function updateCalcResult(){
     badge.textContent = "Neutral";
     diffEl.textContent = (totalYou===0 && totalThem===0) ? "Add items to compare" : "Fair trade — values are close";
   }else if(diff > 0){
-    badge.textContent = "You lead";
-    badge.classList.add("lead-you");
-    diffEl.textContent = `Ahead by ${formatNum(diff)}`;
-  }else{
-    badge.textContent = "They lead";
+    badge.textContent = "Your loss";
     badge.classList.add("lead-them");
-    diffEl.textContent = `Behind by ${formatNum(Math.abs(diff))}`;
+    diffEl.textContent = `Losing ${formatNum(diff)}`;
+  }else{
+    badge.textContent = "Your win";
+    badge.classList.add("lead-you");
+    diffEl.textContent = `Winning ${formatNum(Math.abs(diff))}`;
   }
   const max = Math.max(totalYou, totalThem, 1);
   const ratio = Math.max(-1, Math.min(1, diff / max)); // -1 (them way ahead) .. 1 (you way ahead)
@@ -926,7 +1377,7 @@ function renderSiteAdmin(){
   const sbConnected = !!getSupabase();
   main.innerHTML = `
     <div class="section-title"><i class="fa-solid fa-database"></i> Backend (Supabase)</div>
-    <div class="small-note">Required so every visitor sees the same data. Without this, each browser keeps its own separate copy (localStorage only) — admin edits won't show up for anyone else. Connecting Supabase here makes the site read and write from one shared store.</div>
+    <div class="small-note">Required so every visitor sees the same data. Without this, each browser keeps its own separate copy (localStorage only) — admin edits won't show up for anyone else. <strong>Important:</strong> connecting here only saves the credentials in this browser. For the live site to work for every visitor, the Project URL and anon key must be baked into the file itself — set <span class="mono">DEFAULT_SUPABASE_URL</span> and <span class="mono">DEFAULT_SUPABASE_ANON_KEY</span> near the top of the script and re-upload. Use the fields below to test a connection locally first.</div>
     <div class="admin-row" style="margin-top:8px;">
       <span class="demand-badge ${sbConnected ? "demand-high" : "demand-unknown"}" style="align-self:center;">
         <i class="fa-solid ${sbConnected ? "fa-circle-check" : "fa-circle-xmark"}"></i> ${sbConnected ? "Connected" : "Not connected — using local browser storage only"}
@@ -952,8 +1403,15 @@ alter table kv_store enable row level security;
 create policy "public read" on kv_store for select using (true);
 -- only a signed-in Supabase user (i.e. someone logged into the admin panel) can write
 create policy "authenticated upsert" on kv_store for insert to authenticated with check (true);
-create policy "authenticated update" on kv_store for update to authenticated using (true);</pre>
-    <div class="small-note" style="margin-top:8px;">Then copy the Project URL and anon public key from Project Settings → API into the fields above. Reads stay public on purpose (the value list pages need that), but writes require a valid login session — the anon key alone, even if someone finds it in page source, can't be used to modify data. Create your admin login from the sign-in screen on admin.html, then in Supabase go to Authentication → Providers → Email and turn off "Allow new users to sign up" so no one else can register.</div>
+create policy "authenticated update" on kv_store for update to authenticated using (true);
+-- form responses are the one thing anonymous visitors need to write (submitting a form) —
+-- scoped so it only ever touches "form_responses_..." keys, nothing else in this table
+create policy "public insert form responses" on kv_store for insert to anon
+  with check (key like 'form_responses_%');
+create policy "public update form responses" on kv_store for update to anon
+  using (key like 'form_responses_%') with check (key like 'form_responses_%');</pre>
+    <div class="small-note" style="margin-top:8px;">Then copy the Project URL and anon public key from Project Settings → API into the fields above. Reads stay public on purpose (the value list pages need that), and anonymous visitors can now submit forms too — but only into "form_responses_..." keys. Everything else still needs a valid login session. Create your admin login from the sign-in screen on admin.html, then in Supabase go to Authentication → Providers → Email and turn off "Allow new users to sign up" so no one else can register.</div>
+    <div class="small-note" style="margin-top:8px;"><strong>Already created the table before?</strong> Just run the two new "public insert/update form responses" policies above in the SQL editor — no need to recreate the table.</div>
 
     <div class="divider"></div>
     <div class="section-title"><i class="fa-solid fa-paintbrush"></i> Branding</div>
@@ -1033,12 +1491,6 @@ create policy "authenticated update" on kv_store for update to authenticated usi
     <div class="admin-row" style="margin-top:8px;">
       <div class="field" style="min-width:220px;flex:1;"><label>Calculator subtitle</label><input id="site-calc-subtitle" value="${escapeAttr(SITE_CONFIG.calcSubtitle)}"></div>
     </div>
-    <div class="admin-row" style="margin-top:10px;align-items:center;">
-      <label style="display:flex;align-items:center;gap:8px;font-size:13px;color:var(--text-dim);cursor:pointer;">
-        <input type="checkbox" id="site-show-ad" ${SITE_CONFIG.showAdSlot !== false ? "checked" : ""} style="width:16px;height:16px;">
-        Show reserved ad-space placeholder below the calculator
-      </label>
-    </div>
 
     <div class="admin-row" style="margin-top:16px;">
       <button class="btn btn-primary" id="site-save-btn"><i class="fa-solid fa-check"></i> Save site settings</button>
@@ -1098,7 +1550,6 @@ create policy "authenticated update" on kv_store for update to authenticated usi
     SITE_CONFIG.calcSubtitle = document.getElementById("site-calc-subtitle").value;
     SITE_CONFIG.calcYouLabel = document.getElementById("site-calc-you").value.trim() || "You";
     SITE_CONFIG.calcThemLabel = document.getElementById("site-calc-them").value.trim() || "Them";
-    SITE_CONFIG.showAdSlot = document.getElementById("site-show-ad").checked;
     saveSiteConfig(); applySiteConfig();
     showToast("Site settings saved");
   });
@@ -1109,10 +1560,400 @@ create policy "authenticated update" on kv_store for update to authenticated usi
     }
   });
 }
+
+/* ============ ADS ADMIN ============ */
+function renderAdsAdmin(){
+  const main = document.getElementById("admin-main");
+  const ads = adsList();
+  const regularAds = ads.filter(a=>a.type!=="custom");
+  const customAds = ads.filter(a=>a.type==="custom");
+  main.innerHTML = `
+    <div class="section-title"><i class="fa-solid fa-rectangle-ad"></i> Ad manager</div>
+    <div class="small-note">Paste a link, image, or an ad network's embed/script code into any ad space below, then tick where it should appear. "In-page banner" fills a normal spot on the page. "Random popup (blur)" shows as a full-screen blurred-background overlay with a close button — it rolls the dice on each visit using the chance you set below, and each visitor only sees a given popup once per browser tab session. Use <strong>Preview</strong> on any ad to check it actually renders before it goes live — this catches broken embed codes without needing a real visitor.</div>
+    <div id="ads-list" style="display:flex;flex-direction:column;gap:14px;margin-top:14px;"></div>
+    <div class="admin-row" style="margin-top:16px;">
+      <button class="btn btn-primary" id="add-ad-btn"><i class="fa-solid fa-plus"></i> New ad space</button>
+    </div>
+
+    <div class="divider"></div>
+    <div class="section-title"><i class="fa-solid fa-crop-simple"></i> Custom ad spaces</div>
+    <div class="small-note">Draw a box anywhere on the actual Hub homepage or game page with your mouse — including the open side margins on wider screens, not just the centered content column — then drop a link/embed into it.</div>
+    <div id="custom-ads-list" style="display:flex;flex-direction:column;gap:14px;margin-top:14px;"></div>
+    <div class="admin-row" style="margin-top:16px;">
+      <button class="btn btn-primary" id="draw-ad-home-btn"><i class="fa-solid fa-crosshairs"></i> Draw on Hub homepage</button>
+      <button class="btn btn-primary" id="draw-ad-game-btn"><i class="fa-solid fa-crosshairs"></i> Draw on game page</button>
+    </div>
+  `;
+
+  const list = document.getElementById("ads-list");
+  if(regularAds.length === 0){
+    list.innerHTML = `<div class="empty-state"><i class="fa-solid fa-rectangle-ad"></i>No ad spaces yet — add one below.</div>`;
+  }
+  regularAds.forEach((ad)=>{
+    const card = document.createElement("div");
+    card.style.cssText = "border:1px solid var(--glass-border);border-radius:14px;padding:14px;background:rgba(255,255,255,0.015);";
+    card.innerHTML = `
+      <div class="admin-row" style="align-items:center;">
+        <div class="field" style="flex:1;min-width:180px;"><label>Name</label><input class="ad-name" value="${escapeAttr(ad.name || "")}" placeholder="e.g. Sidebar banner"></div>
+        <div class="field" style="min-width:180px;"><label>Type</label>
+          <select class="ad-type">
+            <option value="embed" ${ad.type!=="popup"?"selected":""}>In-page banner</option>
+            <option value="popup" ${ad.type==="popup"?"selected":""}>Random popup (blur)</option>
+          </select>
+        </div>
+        <div class="field"><label>Enabled</label>
+          <label style="display:flex;align-items:center;gap:8px;font-size:13px;color:var(--text-dim);cursor:pointer;height:38px;">
+            <input type="checkbox" class="ad-enabled" ${ad.enabled!==false?"checked":""} style="width:16px;height:16px;"> Live
+          </label>
+        </div>
+        <div class="field"><label>&nbsp;</label>
+          <div style="display:flex;gap:8px;">
+            <button class="btn btn-primary ad-save"><i class="fa-solid fa-check"></i> Save</button>
+            <button class="btn btn-danger ad-remove" style="justify-content:center;"><i class="fa-solid fa-trash"></i></button>
+          </div>
+        </div>
+      </div>
+      <div class="admin-row" style="margin-top:8px;">
+        <div class="field" style="flex:1;min-width:280px;">
+          <label>Link, image URL, or embed/script code</label>
+          <textarea class="ad-code" rows="3" placeholder="Paste a URL, an &lt;img&gt;/&lt;a&gt; snippet, or a network's full embed/script code here" style="width:100%;resize:vertical;font-family:var(--font-body);font-size:13px;padding:10px 12px;border-radius:10px;border:1px solid var(--glass-border);background:rgba(255,255,255,0.03);color:var(--text);">${escapeHtml(ad.code || "")}</textarea>
+        </div>
+      </div>
+      <div class="admin-row" style="margin-top:10px;align-items:center;">
+        <div class="field"><label>Show on</label>
+          <div style="display:flex;gap:14px;">
+            <label style="display:flex;align-items:center;gap:6px;font-size:13px;color:var(--text-dim);cursor:pointer;">
+              <input type="checkbox" class="ad-place-home" ${ad.placements&&ad.placements.home?"checked":""} style="width:16px;height:16px;"> Hub homepage
+            </label>
+            <label style="display:flex;align-items:center;gap:6px;font-size:13px;color:var(--text-dim);cursor:pointer;">
+              <input type="checkbox" class="ad-place-game" ${ad.placements&&ad.placements.game?"checked":""} style="width:16px;height:16px;"> Game &amp; calculator page
+            </label>
+          </div>
+        </div>
+      </div>
+      <div class="admin-row ad-popup-fields" style="margin-top:10px;display:${ad.type==="popup"?"flex":"none"};align-items:flex-end;">
+        <div class="field" style="min-width:160px;"><label>Chance to show (%)</label><input class="ad-chance" type="number" min="0" max="100" value="${ad.popupChance!=null?ad.popupChance:30}"></div>
+        <div class="field" style="min-width:160px;"><label>Delay before showing (sec)</label><input class="ad-delay" type="number" min="0" value="${ad.popupDelay!=null?ad.popupDelay:3}"></div>
+        <div class="field"><button class="btn ad-preview-popup"><i class="fa-solid fa-eye"></i> Preview popup</button></div>
+      </div>
+      <div class="ad-embed-preview-wrap" style="display:${ad.type==="popup"?"none":"block"};">
+        <label style="font-size:11px;color:var(--text-faint);text-transform:uppercase;letter-spacing:0.3px;font-weight:700;">Live preview</label>
+        <div class="ad-preview-box"></div>
+      </div>
+    `;
+    list.appendChild(card);
+
+    const commit = ()=>{ saveSiteConfig(); renderAds("home"); renderAds("game"); };
+    const previewBox = card.querySelector(".ad-preview-box");
+    const refreshPreview = ()=>{ if(ad.type !== "popup") injectAdCode(previewBox, ad.code, 70); };
+    refreshPreview();
+
+    card.querySelector(".ad-name").addEventListener("input", e=>{ ad.name = e.target.value; commit(); });
+    card.querySelector(".ad-code").addEventListener("input", e=>{ ad.code = e.target.value; commit(); refreshPreview(); });
+    card.querySelector(".ad-enabled").addEventListener("change", e=>{ ad.enabled = e.target.checked; commit(); });
+    card.querySelector(".ad-place-home").addEventListener("change", e=>{ ad.placements = ad.placements||{}; ad.placements.home = e.target.checked; commit(); });
+    card.querySelector(".ad-place-game").addEventListener("change", e=>{ ad.placements = ad.placements||{}; ad.placements.game = e.target.checked; commit(); });
+    card.querySelector(".ad-chance").addEventListener("input", e=>{ ad.popupChance = Number(e.target.value); commit(); });
+    card.querySelector(".ad-delay").addEventListener("input", e=>{ ad.popupDelay = Number(e.target.value); commit(); });
+    card.querySelector(".ad-preview-popup").addEventListener("click", ()=>{
+      showPopupAd({ code: card.querySelector(".ad-code").value });
+    });
+    card.querySelector(".ad-type").addEventListener("change", e=>{
+      ad.type = e.target.value;
+      const isPopup = ad.type === "popup";
+      card.querySelector(".ad-popup-fields").style.display = isPopup ? "flex" : "none";
+      card.querySelector(".ad-embed-preview-wrap").style.display = isPopup ? "none" : "block";
+      refreshPreview();
+      commit();
+    });
+    card.querySelector(".ad-save").addEventListener("click", ()=>{
+      commit();
+      showToast(`"${ad.name || "Ad"}" saved`);
+    });
+    card.querySelector(".ad-remove").addEventListener("click", ()=>{
+      SITE_CONFIG.ads = adsList().filter(a=>a.id !== ad.id);
+      saveSiteConfig(); renderAds("home"); renderAds("game");
+      renderAdsAdmin();
+      showToast("Ad space removed");
+    });
+  });
+  document.getElementById("add-ad-btn").addEventListener("click", ()=>{
+    if(!Array.isArray(SITE_CONFIG.ads)) SITE_CONFIG.ads = [];
+    SITE_CONFIG.ads.push({ id: randomAdId(), name: "New ad space", type: "embed", code: "", enabled: true, placements: { home:true, game:false }, popupChance: 30, popupDelay: 3 });
+    saveSiteConfig();
+    renderAdsAdmin();
+  });
+
+  const customList = document.getElementById("custom-ads-list");
+  if(customAds.length === 0){
+    customList.innerHTML = `<div class="empty-state"><i class="fa-solid fa-crop-simple"></i>No custom ad spaces yet.</div>`;
+  }
+  customAds.forEach((ad)=>{
+    const card = document.createElement("div");
+    card.style.cssText = "border:1px solid var(--glass-border);border-radius:14px;padding:14px;background:rgba(255,255,255,0.015);";
+    card.innerHTML = `
+      <div class="admin-row" style="align-items:center;">
+        <div class="field" style="flex:1;min-width:180px;"><label>Name</label><input class="cad-name" value="${escapeAttr(ad.name || "")}"></div>
+        <div class="field"><label>Page</label><div style="height:38px;display:flex;align-items:center;font-size:13px;color:var(--text-dim);">${ad.screen === "home" ? "Hub homepage" : "Game & calculator page"}</div></div>
+        <div class="field"><label>Enabled</label>
+          <label style="display:flex;align-items:center;gap:8px;font-size:13px;color:var(--text-dim);cursor:pointer;height:38px;">
+            <input type="checkbox" class="cad-enabled" ${ad.enabled!==false?"checked":""} style="width:16px;height:16px;"> Live
+          </label>
+        </div>
+        <div class="field"><label>&nbsp;</label>
+          <div style="display:flex;gap:8px;">
+            <button class="btn cad-redraw"><i class="fa-solid fa-crosshairs"></i> Redraw</button>
+            <button class="btn btn-primary cad-save"><i class="fa-solid fa-check"></i> Save</button>
+            <button class="btn btn-danger cad-remove"><i class="fa-solid fa-trash"></i></button>
+          </div>
+        </div>
+      </div>
+      <div class="admin-row" style="margin-top:8px;">
+        <div class="field" style="flex:1;min-width:280px;">
+          <label>Link, image URL, or embed/script code</label>
+          <textarea class="cad-code" rows="3" style="width:100%;resize:vertical;font-family:var(--font-body);font-size:13px;padding:10px 12px;border-radius:10px;border:1px solid var(--glass-border);background:rgba(255,255,255,0.03);color:var(--text);">${escapeHtml(ad.code || "")}</textarea>
+        </div>
+      </div>
+      <label style="font-size:11px;color:var(--text-faint);text-transform:uppercase;letter-spacing:0.3px;font-weight:700;">Live preview</label>
+      <div class="ad-preview-box"></div>
+    `;
+    customList.appendChild(card);
+
+    const previewBox = card.querySelector(".ad-preview-box");
+    const refreshPreview = ()=> injectAdCode(previewBox, ad.code, 70);
+    refreshPreview();
+    const commit = ()=>{ saveSiteConfig(); renderCustomAds("home"); renderCustomAds("game"); };
+
+    card.querySelector(".cad-name").addEventListener("input", e=>{ ad.name = e.target.value; commit(); });
+    card.querySelector(".cad-code").addEventListener("input", e=>{ ad.code = e.target.value; commit(); refreshPreview(); });
+    card.querySelector(".cad-enabled").addEventListener("change", e=>{ ad.enabled = e.target.checked; commit(); });
+    card.querySelector(".cad-save").addEventListener("click", ()=>{ commit(); showToast(`"${ad.name || "Ad"}" saved`); });
+    card.querySelector(".cad-redraw").addEventListener("click", ()=> redrawCustomAd(ad.id));
+    card.querySelector(".cad-remove").addEventListener("click", ()=>{
+      SITE_CONFIG.ads = adsList().filter(a=>a.id !== ad.id);
+      saveSiteConfig(); renderCustomAds("home"); renderCustomAds("game");
+      renderAdsAdmin();
+      showToast("Custom ad space removed");
+    });
+  });
+  document.getElementById("draw-ad-home-btn").addEventListener("click", ()=> startDrawCustomAd("home"));
+  document.getElementById("draw-ad-game-btn").addEventListener("click", ()=> startDrawCustomAd("game"));
+}
+
+/* ============ FORMS ADMIN ============ */
+function renderFormsAdmin(){
+  const main = document.getElementById("admin-main");
+  main.innerHTML = `
+    <div class="section-title"><i class="fa-solid fa-list-check"></i> Forms</div>
+    <div class="small-note">Build a form, share its link anywhere (e.g. post it in your Discord server), and every response gets collected into a table you can view or export to CSV.</div>
+    <div id="forms-list" style="display:flex;flex-direction:column;gap:10px;margin-top:14px;"></div>
+    <div class="admin-row" style="margin-top:16px;">
+      <button class="btn btn-primary" id="add-form-btn"><i class="fa-solid fa-plus"></i> New form</button>
+    </div>
+  `;
+  const list = document.getElementById("forms-list");
+  if(FORMS.length === 0){
+    list.innerHTML = `<div class="empty-state"><i class="fa-solid fa-list-check"></i>No forms yet — create one below.</div>`;
+  }
+  FORMS.forEach((form, idx)=>{
+    const row = document.createElement("div");
+    row.style.cssText = "display:flex;align-items:center;gap:10px;border:1px solid var(--glass-border);border-radius:12px;padding:12px 14px;background:rgba(255,255,255,0.015);";
+    row.innerHTML = `
+      <div style="flex:1;min-width:0;">
+        <div style="font-weight:700;font-size:14px;">${escapeHtml(form.title || "Untitled form")}</div>
+        <div style="font-size:12px;color:var(--text-faint);">${(form.questions||[]).length} question${(form.questions||[]).length===1?"":"s"}</div>
+      </div>
+      <button class="btn form-edit-btn"><i class="fa-solid fa-pen"></i> Edit</button>
+      <button class="btn btn-danger form-delete-btn"><i class="fa-solid fa-trash"></i></button>
+    `;
+    row.querySelector(".form-edit-btn").addEventListener("click", ()=>{
+      currentAdminFormIdx = idx; formAdminTab = "edit"; adminMode = "form-edit"; renderAdmin();
+    });
+    row.querySelector(".form-delete-btn").addEventListener("click", ()=>{
+      if(confirm(`Delete "${form.title || "this form"}"? Its collected responses will be left in the database but no longer reachable from here.`)){
+        FORMS.splice(idx,1); saveForms(); renderFormsAdmin(); showToast("Form deleted");
+      }
+    });
+    list.appendChild(row);
+  });
+  document.getElementById("add-form-btn").addEventListener("click", ()=>{
+    FORMS.push({ id: randomFormId(), slug: uniqueFormSlug("new-form"), title: "New form", description: "", questions: [] });
+    saveForms();
+    currentAdminFormIdx = FORMS.length - 1;
+    formAdminTab = "edit";
+    adminMode = "form-edit";
+    renderAdmin();
+  });
+}
+
+function renderFormEditor(){
+  const form = FORMS[currentAdminFormIdx];
+  const main = document.getElementById("admin-main");
+  if(!form){ adminMode = "forms"; renderFormsAdmin(); return; }
+  main.innerHTML = `
+    <div class="admin-row" style="align-items:center;">
+      <button class="btn" id="form-back-btn"><i class="fa-solid fa-arrow-left"></i> All forms</button>
+      <div style="flex:1;"></div>
+      <button class="btn ${formAdminTab==='edit'?'btn-primary':''}" id="form-tab-edit">Edit</button>
+      <button class="btn ${formAdminTab==='responses'?'btn-primary':''}" id="form-tab-responses">Responses</button>
+    </div>
+    <div id="form-editor-body" style="margin-top:14px;"></div>
+  `;
+  document.getElementById("form-back-btn").addEventListener("click", ()=>{ adminMode = "forms"; renderAdmin(); });
+  document.getElementById("form-tab-edit").addEventListener("click", ()=>{ formAdminTab = "edit"; renderFormEditor(); });
+  document.getElementById("form-tab-responses").addEventListener("click", ()=>{ formAdminTab = "responses"; renderFormEditor(); });
+
+  if(formAdminTab === "responses"){ renderFormResponses(form); return; }
+
+  const body = document.getElementById("form-editor-body");
+  body.innerHTML = `
+    <div class="admin-row">
+      <div class="field" style="flex:1;min-width:220px;"><label>Title</label><input id="form-title" value="${escapeAttr(form.title||"")}"></div>
+      <div class="field" style="flex:1;min-width:220px;"><label>URL slug</label><input id="form-slug" value="${escapeAttr(form.slug||"")}" placeholder="e.g. game-suggestion"></div>
+    </div>
+    <div class="admin-row" style="margin-top:8px;">
+      <div class="field" style="flex:1;min-width:220px;"><label>Description (optional)</label><textarea id="form-desc" rows="2" style="width:100%;resize:vertical;padding:10px 12px;border-radius:10px;border:1px solid var(--glass-border);background:rgba(255,255,255,0.03);color:var(--text);">${escapeHtml(form.description||"")}</textarea></div>
+    </div>
+    <div class="admin-row" style="margin-top:10px;align-items:center;">
+      <div class="field" style="flex:1;">
+        <label>Shareable link</label>
+        <div style="display:flex;gap:8px;">
+          <input id="form-share-url" readonly value="${escapeAttr(formShareUrl(form))}" style="flex:1;">
+          <button class="btn" id="form-copy-link"><i class="fa-solid fa-copy"></i> Copy</button>
+        </div>
+        <div class="small-note" style="margin-top:6px;">Edit the slug above and hit "Save form" to change this link. Changing it breaks any copies of the old link already shared.</div>
+      </div>
+    </div>
+
+    <div class="divider"></div>
+    <div class="section-title" style="font-size:14px;"><i class="fa-solid fa-list-ol"></i> Questions</div>
+    <div id="form-questions-list" style="display:flex;flex-direction:column;gap:12px;margin-top:10px;"></div>
+    <div class="admin-row" style="margin-top:14px;">
+      <button class="btn btn-primary" id="add-question-btn"><i class="fa-solid fa-plus"></i> Add question</button>
+      <button class="btn" id="form-save-btn"><i class="fa-solid fa-check"></i> Save form</button>
+    </div>
+  `;
+
+  document.getElementById("form-copy-link").addEventListener("click", async ()=>{
+    try{ await navigator.clipboard.writeText(formShareUrl(form)); showToast("Link copied"); }
+    catch(e){ document.getElementById("form-share-url").select(); showToast("Select and copy the link manually"); }
+  });
+
+  const qList = document.getElementById("form-questions-list");
+  if((form.questions||[]).length === 0){
+    qList.innerHTML = `<div class="empty-state" style="padding:20px;"><i class="fa-solid fa-list-ol"></i>No questions yet.</div>`;
+  }
+  (form.questions||[]).forEach((q, qIdx)=>{
+    const qCard = document.createElement("div");
+    qCard.style.cssText = "border:1px solid var(--glass-border);border-radius:12px;padding:12px;background:rgba(255,255,255,0.015);";
+    qCard.innerHTML = `
+      <div class="admin-row" style="align-items:center;">
+        <div class="field" style="flex:1;min-width:200px;"><label>Question</label><input class="q-label" value="${escapeAttr(q.label||"")}" placeholder="e.g. What's your in-game username?"></div>
+        <div class="field" style="min-width:160px;"><label>Type</label>
+          <select class="q-type">
+            <option value="short" ${q.type==="short"||!q.type?"selected":""}>Short answer</option>
+            <option value="paragraph" ${q.type==="paragraph"?"selected":""}>Paragraph</option>
+            <option value="choice" ${q.type==="choice"?"selected":""}>Multiple choice (pick one)</option>
+            <option value="checkbox" ${q.type==="checkbox"?"selected":""}>Checkboxes (pick many)</option>
+          </select>
+        </div>
+        <div class="field"><label>Required</label>
+          <label style="display:flex;align-items:center;gap:8px;font-size:13px;color:var(--text-dim);cursor:pointer;height:38px;">
+            <input type="checkbox" class="q-required" ${q.required?"checked":""} style="width:16px;height:16px;">
+          </label>
+        </div>
+        <div class="field"><label>&nbsp;</label><button class="btn btn-danger q-remove"><i class="fa-solid fa-trash"></i></button></div>
+      </div>
+      <div class="q-options-wrap" style="margin-top:8px;display:${(q.type==="choice"||q.type==="checkbox")?"block":"none"};">
+        <label style="font-size:11px;color:var(--text-faint);text-transform:uppercase;letter-spacing:0.3px;font-weight:700;">Options (one per line)</label>
+        <textarea class="q-options" rows="3" style="width:100%;resize:vertical;padding:10px 12px;border-radius:10px;border:1px solid var(--glass-border);background:rgba(255,255,255,0.03);color:var(--text);">${escapeHtml((q.options||[]).join("\n"))}</textarea>
+      </div>
+    `;
+    qList.appendChild(qCard);
+    qCard.querySelector(".q-label").addEventListener("input", e=>{ q.label = e.target.value; });
+    qCard.querySelector(".q-required").addEventListener("change", e=>{ q.required = e.target.checked; });
+    qCard.querySelector(".q-type").addEventListener("change", e=>{
+      q.type = e.target.value;
+      qCard.querySelector(".q-options-wrap").style.display = (q.type==="choice"||q.type==="checkbox") ? "block" : "none";
+    });
+    qCard.querySelector(".q-options").addEventListener("input", e=>{
+      q.options = e.target.value.split("\n").map(s=>s.trim()).filter(Boolean);
+    });
+    qCard.querySelector(".q-remove").addEventListener("click", ()=>{
+      form.questions.splice(qIdx,1);
+      renderFormEditor();
+    });
+  });
+
+  document.getElementById("add-question-btn").addEventListener("click", ()=>{
+    if(!Array.isArray(form.questions)) form.questions = [];
+    form.questions.push({ id: randomQId(), label: "", type: "short", required: false, options: [] });
+    renderFormEditor();
+  });
+  document.getElementById("form-save-btn").addEventListener("click", ()=>{
+    form.title = document.getElementById("form-title").value.trim() || "Untitled form";
+    form.description = document.getElementById("form-desc").value;
+    const slugInput = document.getElementById("form-slug").value.trim();
+    const desiredSlug = slugifyForm(slugInput || form.title);
+    if(FORMS.some(f=>f!==form && f.slug===desiredSlug)){
+      form.slug = uniqueFormSlug(desiredSlug, form);
+      showToast(`That slug was taken — used "${form.slug}" instead. Form saved.`);
+    } else {
+      form.slug = desiredSlug;
+      showToast("Form saved");
+    }
+    saveForms();
+    renderFormEditor();
+  });
+}
+
+async function renderFormResponses(form){
+  const body = document.getElementById("form-editor-body");
+  body.innerHTML = `<div class="empty-state" style="padding:30px;"><i class="fa-solid fa-spinner fa-spin"></i>Loading responses…</div>`;
+  const responses = await loadFormResponses(form.id);
+  if(responses.length === 0){
+    body.innerHTML = `<div class="empty-state" style="padding:30px;"><i class="fa-solid fa-inbox"></i>No responses yet.</div>`;
+    return;
+  }
+  const cols = form.questions || [];
+  let tableHtml = `<div style="overflow-x:auto;"><table style="width:100%;border-collapse:collapse;font-size:13px;">
+    <thead><tr>
+      <th style="text-align:left;padding:8px 10px;border-bottom:1px solid var(--glass-border);color:var(--text-faint);font-size:11px;text-transform:uppercase;">Submitted</th>
+      ${cols.map(q=>`<th style="text-align:left;padding:8px 10px;border-bottom:1px solid var(--glass-border);color:var(--text-faint);font-size:11px;text-transform:uppercase;">${escapeHtml(q.label||"")}</th>`).join("")}
+    </tr></thead><tbody>`;
+  responses.slice().reverse().forEach(r=>{
+    tableHtml += `<tr>
+      <td style="padding:8px 10px;border-bottom:1px solid var(--glass-border);color:var(--text-dim);white-space:nowrap;">${escapeHtml(new Date(r.submittedAt).toLocaleString())}</td>
+      ${cols.map(q=>{
+        const v = r.answers ? r.answers[q.id] : "";
+        return `<td style="padding:8px 10px;border-bottom:1px solid var(--glass-border);color:var(--text);">${escapeHtml(Array.isArray(v)?v.join(", "):(v||""))}</td>`;
+      }).join("")}
+    </tr>`;
+  });
+  tableHtml += `</tbody></table></div>`;
+  body.innerHTML = `
+    <div class="admin-row" style="align-items:center;margin-bottom:12px;">
+      <div class="small-note" style="margin:0;">${responses.length} response${responses.length===1?"":"s"}</div>
+      <div style="flex:1;"></div>
+      <button class="btn btn-primary" id="export-csv-btn"><i class="fa-solid fa-file-csv"></i> Export to CSV</button>
+    </div>
+    ${tableHtml}
+  `;
+  document.getElementById("export-csv-btn").addEventListener("click", ()=> exportFormResponsesCsv(form, responses));
+}
+
 function renderAdmin(){
   const siteBtn = document.getElementById("admin-site-btn");
   siteBtn.className = "side-game" + (adminMode === "site" ? " active" : "");
   siteBtn.onclick = ()=>{ adminMode = "site"; renderAdmin(); };
+
+  const adsBtn = document.getElementById("admin-ads-btn");
+  adsBtn.className = "side-game" + (adminMode === "ads" ? " active" : "");
+  adsBtn.onclick = ()=>{ adminMode = "ads"; renderAdmin(); };
+
+  const formsBtn = document.getElementById("admin-forms-btn");
+  formsBtn.className = "side-game" + (adminMode === "forms" || adminMode === "form-edit" ? " active" : "");
+  formsBtn.onclick = ()=>{ adminMode = "forms"; renderAdmin(); };
 
   const sideList = document.getElementById("admin-game-list");
   sideList.innerHTML = "";
@@ -1127,6 +1968,9 @@ function renderAdmin(){
 }
 function renderAdminMain(){
   if(adminMode === "site"){ renderSiteAdmin(); return; }
+  if(adminMode === "ads"){ renderAdsAdmin(); return; }
+  if(adminMode === "forms"){ renderFormsAdmin(); return; }
+  if(adminMode === "form-edit"){ renderFormEditor(); return; }
   const g = GAMES[currentAdminGameIdx];
   const main = document.getElementById("admin-main");
   main.innerHTML = `
@@ -1136,11 +1980,12 @@ function renderAdminMain(){
       <div class="field"><label>Actions</label>
         <div style="display:flex;gap:8px;">
           <button class="btn btn-primary" id="admin-save-name"><i class="fa-solid fa-check"></i> Save</button>
+          <button class="btn btn-danger" id="admin-delete-game"><i class="fa-solid fa-trash"></i> Delete game</button>
           <button class="btn btn-danger" id="admin-reset-all"><i class="fa-solid fa-rotate-left"></i> Reset all</button>
         </div>
       </div>
     </div>
-    <div class="small-note">Live URL for this game: <span class="mono">${rootUrl()}#/${g.slug}</span></div>
+    <div class="small-note">This game appears as a card on the Hub homepage — clicking it opens its item list and calculator.</div>
 
     <div class="divider"></div>
     <div class="section-title"><i class="fa-solid fa-image"></i> Homepage card</div>
@@ -1220,6 +2065,16 @@ function renderAdminMain(){
       const others = GAMES.filter((gg,i)=>i!==currentAdminGameIdx);
       g.slug = others.some(o=>o.slug===slugVal) ? uniqueSlug(slugVal) : slugVal;
       saveToStorage(); renderAdmin(); renderHome(); showToast("Game saved");
+    }
+  });
+  document.getElementById("admin-delete-game").addEventListener("click", ()=>{
+    if(GAMES.length <= 1){ showToast("Can't delete the last remaining game"); return; }
+    if(confirm(`Delete "${g.name}" and all of its items? This cannot be undone.`)){
+      GAMES.splice(currentAdminGameIdx, 1);
+      currentAdminGameIdx = Math.max(0, currentAdminGameIdx - 1);
+      adminMode = "game";
+      saveToStorage(); renderAdmin(); renderHome();
+      showToast(`"${g.name}" deleted`);
     }
   });
   document.getElementById("admin-reset-all").addEventListener("click", ()=>{
@@ -1447,7 +2302,7 @@ async function callOpenRouter(apiKey, model, messagesOrPrompt, opts){
       headers: {
         "Content-Type": "application/json",
         "Authorization": "Bearer " + apiKey,
-        "HTTP-Referer": (window.location.origin && window.location.origin !== "null") ? window.location.origin : rootUrl(),
+        "HTTP-Referer": (window.location.origin && window.location.origin !== "null") ? window.location.origin : "https://openrouter.ai",
         "X-Title": "Ledger Trading Value Hub"
       },
       body: JSON.stringify({ model: model || "openrouter/free", messages, temperature: 0 }),
@@ -1647,21 +2502,18 @@ function showToast(msg){
   toastTimer = setTimeout(()=>t.classList.remove("show"), 2600);
 }
 
-/* ============ ROUTING INIT ============ */
-/* Single domain now — games live at #/slug on the same page instead of a subdomain. */
-function handleHashRoute(){
-  const slug = currentSlug();
-  if(slug){
-    const idx = GAMES.findIndex(g=>g.slug===slug);
-    if(idx >= 0){ openGameDetail(idx); return; }
-  }
-  goTo("home");
-}
-function initRouting(){
+/* ============ INIT ============ */
+/* One page, one domain — every game is just a screen switch, never a new address. */
+function initApp(){
   wireNav();
+  const formId = getUrlFormId();
+  if(formId){
+    renderFormFill(formId);
+    goTo("form-fill");
+    return;
+  }
   renderHome();
-  window.addEventListener("hashchange", handleHashRoute);
-  handleHashRoute();
+  goTo("home");
 }
 
 /* ============ INIT ============ */
@@ -1669,8 +2521,9 @@ function initRouting(){
   loadSupabaseCreds();
   await loadFromStorage();
   await loadSiteConfig();
+  await loadForms();
   applySiteConfig();
-  initRouting();
+  initApp();
 })();
 </script>
 </body>
