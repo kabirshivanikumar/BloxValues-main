@@ -56,6 +56,8 @@ button{font-family:inherit;cursor:pointer;}
 .custom-ad-box{position:fixed;overflow:hidden;z-index:5;border-radius:8px;pointer-events:auto;}
 .ad-draw-layer{position:fixed;inset:0;z-index:80;cursor:crosshair;background:rgba(120,150,255,0.05);}
 .ad-draw-rect{position:absolute;border:2px dashed #7dd3fc;background:rgba(125,211,252,0.15);pointer-events:none;border-radius:4px;}
+.ad-draw-dims{position:absolute;bottom:100%;left:0;margin-bottom:6px;background:#0b1220;color:#7dd3fc;font-size:12px;font-weight:700;
+  padding:3px 8px;border-radius:6px;border:1px solid #7dd3fc;white-space:nowrap;pointer-events:none;font-variant-numeric:tabular-nums;}
 .ad-draw-banner{position:fixed;top:16px;left:50%;transform:translateX(-50%);z-index:90;
   background:linear-gradient(165deg, var(--bg-elev-2), var(--bg-elev));border:1px solid var(--glass-border);
   padding:12px 16px;border-radius:14px;font-size:13px;color:var(--text);box-shadow:0 20px 50px -15px rgba(0,0,0,0.7);
@@ -296,10 +298,23 @@ input::placeholder{color:var(--text-faint);}
   background:linear-gradient(120deg,var(--grad-a),var(--grad-b));color:#101012;font-size:13px;font-weight:700;
   box-shadow:0 12px 30px -8px rgba(0,0,0,0.45);transform:translateY(20px);opacity:0;transition:all .3s ease;z-index:200;max-width:320px;}
 .toast.show{transform:translateY(0);opacity:1;}
+
+/* Boot loader: hides the app (and its default placeholder branding) until the real,
+   synced site config has loaded, so visitors never see a flash of "Ledger" before
+   your actual brand name appears. */
+.app{opacity:0;transition:opacity .25s ease;}
+.app.ready{opacity:1;}
+.boot-loader{position:fixed;inset:0;z-index:9999;display:flex;align-items:center;justify-content:center;
+  background:var(--bg);transition:opacity .25s ease;}
+.boot-loader.hide{opacity:0;pointer-events:none;}
+.boot-loader .spin{width:34px;height:34px;border-radius:50%;border:3px solid var(--glass-border);
+  border-top-color:var(--grad-a, #7dd3fc);animation:boot-spin 0.8s linear infinite;}
+@keyframes boot-spin{to{transform:rotate(360deg);}}
 </style>
 </head>
 <body>
-<div class="app">
+<div class="boot-loader" id="boot-loader"><div class="spin"></div></div>
+<div class="app" id="app-root">
   <div class="topbar">
     <div class="brand"><div class="mark" id="brand-mark">L</div><span id="brand-name">Ledger</span></div>
     <nav id="topbar-nav">
@@ -880,19 +895,40 @@ function renderAds(placement){
 // using the percentage rectangle captured when it was drawn.
 // Custom ad boxes are fixed to the viewport (not the centered .app column) so they can
 // sit in the open side margins on wide screens, not just inside the main content width.
+let _lastAdsScreen = null;
 function renderCustomAds(screen){
+  _lastAdsScreen = screen;
   document.querySelectorAll(".custom-ad-box").forEach(el=>el.remove());
+  const vw = window.innerWidth, vh = window.innerHeight;
   adsList().filter(ad => ad.enabled && ad.type === "custom" && ad.screen === screen && ad.rect).forEach(ad=>{
     const box = document.createElement("div");
     box.className = "custom-ad-box";
-    box.style.left = ad.rect.x + "%";
-    box.style.top = ad.rect.y + "%";
-    box.style.width = ad.rect.w + "%";
-    box.style.height = ad.rect.h + "%";
+    // ad.rect.x/y/w/h were captured as % of the *drawing* device's viewport. On a very
+    // differently-shaped screen (e.g. drawn on a wide desktop, viewed on a narrow phone)
+    // that can push the box partly or fully off-screen. Clamp everything to real pixels
+    // of the *current* viewport so the ad always stays fully visible and usable.
+    let w = Math.min((ad.rect.w/100) * vw, vw);
+    let h = Math.min((ad.rect.h/100) * vh, vh);
+    let left = (ad.rect.x/100) * vw;
+    let top = (ad.rect.y/100) * vh;
+    left = Math.max(0, Math.min(left, vw - w));
+    top = Math.max(0, Math.min(top, vh - h));
+    box.style.left = left + "px";
+    box.style.top = top + "px";
+    box.style.width = w + "px";
+    box.style.height = h + "px";
     injectAdCode(box, ad.code, 40);
     document.body.appendChild(box);
   });
 }
+let _adsResizeTimer = null;
+window.addEventListener("resize", ()=>{
+  clearTimeout(_adsResizeTimer);
+  _adsResizeTimer = setTimeout(()=>{ if(_lastAdsScreen) renderCustomAds(_lastAdsScreen); }, 150);
+});
+window.addEventListener("orientationchange", ()=>{
+  setTimeout(()=>{ if(_lastAdsScreen) renderCustomAds(_lastAdsScreen); }, 200);
+});
 
 // Rolls the dice for every enabled "popup" (blur interstitial) ad targeting this
 // placement and shows at most one, after its configured delay. Each ad is capped
@@ -938,6 +974,10 @@ function startDrawCustomAd(screen, existingAd){
   const rectEl = document.createElement("div");
   rectEl.className = "ad-draw-rect";
   rectEl.style.display = "none";
+  const dimsEl = document.createElement("div");
+  dimsEl.className = "ad-draw-dims";
+  dimsEl.style.display = "none";
+  rectEl.appendChild(dimsEl);
   layer.appendChild(rectEl);
   document.body.appendChild(layer);
 
@@ -946,7 +986,7 @@ function startDrawCustomAd(screen, existingAd){
   banner.innerHTML = `<i class="fa-solid fa-crosshairs"></i> Click and drag anywhere — including the side margins — to draw the ad area &nbsp; <button class="btn" id="ad-draw-cancel" style="padding:4px 10px;">Cancel (Esc)</button>`;
   document.body.appendChild(banner);
 
-  _adDraw = { screen, existingAd, layer, banner, rectEl, dragging:false, sx:0, sy:0 };
+  _adDraw = { screen, existingAd, layer, banner, rectEl, dimsEl, dragging:false, sx:0, sy:0 };
 
   const onDown = (e)=>{
     _adDraw.dragging = true;
@@ -955,6 +995,8 @@ function startDrawCustomAd(screen, existingAd){
     rectEl.style.left = _adDraw.sx + "px"; rectEl.style.top = _adDraw.sy + "px";
     rectEl.style.width = "0px"; rectEl.style.height = "0px";
     rectEl.style.display = "block";
+    dimsEl.style.display = "block";
+    dimsEl.textContent = "0 × 0 px";
   };
   const onMove = (e)=>{
     if(!_adDraw || !_adDraw.dragging) return;
@@ -962,6 +1004,7 @@ function startDrawCustomAd(screen, existingAd){
     const x = Math.min(cx, _adDraw.sx), y = Math.min(cy, _adDraw.sy);
     const w = Math.abs(cx - _adDraw.sx), h = Math.abs(cy - _adDraw.sy);
     rectEl.style.left = x+"px"; rectEl.style.top = y+"px"; rectEl.style.width = w+"px"; rectEl.style.height = h+"px";
+    dimsEl.textContent = Math.round(w) + " × " + Math.round(h) + " px";
   };
   const onUp = ()=>{
     if(!_adDraw || !_adDraw.dragging) return;
@@ -2524,6 +2567,9 @@ function initApp(){
   await loadForms();
   applySiteConfig();
   initApp();
+  document.getElementById("app-root").classList.add("ready");
+  const bootLoader = document.getElementById("boot-loader");
+  if(bootLoader){ bootLoader.classList.add("hide"); setTimeout(()=>bootLoader.remove(), 300); }
 })();
 </script>
 </body>
